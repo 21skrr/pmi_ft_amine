@@ -6,9 +6,9 @@ const Event = sequelize.define(
   "Event",
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     title: {
       type: DataTypes.STRING,
@@ -32,16 +32,11 @@ const Event = sequelize.define(
     },
     type: {
       type: DataTypes.ENUM("meeting", "training", "event", "planning"),
-      allowNull: false,
       defaultValue: "meeting",
     },
     createdBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
-      references: {
-        model: "Users",
-        key: "id",
-      },
     },
   },
   {

@@ -1,10 +1,29 @@
 const express = require("express");
 const { check } = require("express-validator");
 const evaluationController = require("../controllers/evaluationController");
-const auth = require("../middleware/auth");
-const roleCheck = require("../middleware/roleCheck");
+const { auth, checkRole } = require("../middleware/auth");
 
 const router = express.Router();
+
+// Validation middleware
+const evaluationValidation = [
+  check("title", "Title is required").not().isEmpty(),
+  check("type", "Evaluation type is required").isIn([
+    "performance",
+    "skill",
+    "behavior",
+    "competency",
+  ]),
+  check("criteria", "Criteria must be an array").isArray(),
+  check("criteria.*.name", "Criteria name is required").not().isEmpty(),
+  check("criteria.*.weight", "Criteria weight is required").isFloat({
+    min: 0,
+    max: 1,
+  }),
+  check("criteria.*.description", "Criteria description is required")
+    .not()
+    .isEmpty(),
+];
 
 // GET /api/evaluations/user
 router.get("/user", auth, evaluationController.getUserEvaluations);
@@ -13,7 +32,7 @@ router.get("/user", auth, evaluationController.getUserEvaluations);
 router.get(
   "/supervisor",
   auth,
-  roleCheck(["supervisor"]),
+  checkRole("supervisor"),
   evaluationController.getSupervisorEvaluations
 );
 
@@ -21,7 +40,7 @@ router.get(
 router.get(
   "/review",
   auth,
-  roleCheck(["manager", "hr"]),
+  checkRole("manager", "hr"),
   evaluationController.getReviewEvaluations
 );
 
@@ -31,52 +50,45 @@ router.get("/:id", auth, evaluationController.getEvaluationById);
 // POST /api/evaluations
 router.post(
   "/",
-  [
-    auth,
-    roleCheck(["hr", "supervisor", "manager"]),
-    check("employeeId", "Employee ID is required").not().isEmpty(),
-    check(
-      "type",
-      "Type must be 3-month, 6-month, 12-month, performance, training, or probation"
-    ).isIn([
-      "3-month",
-      "6-month",
-      "12-month",
-      "performance",
-      "training",
-      "probation",
-    ]),
-    check("dueDate", "Due date is required").isISO8601(),
-  ],
+  [auth, checkRole("hr", "supervisor"), evaluationValidation],
   evaluationController.createEvaluation
 );
 
 // PUT /api/evaluations/:id
 router.put(
   "/:id",
-  [
-    auth,
-    roleCheck(["supervisor", "manager", "hr"]),
-    check("status", "Status must be pending, in_progress, or completed")
-      .optional()
-      .isIn(["pending", "in_progress", "completed"]),
-  ],
+  [auth, checkRole("hr", "supervisor"), evaluationValidation],
   evaluationController.updateEvaluation
 );
 
 // PUT /api/evaluations/:id/review
 router.put(
   "/:id/review",
-  [auth, roleCheck(["manager", "hr"])],
+  [auth, checkRole("manager", "hr")],
   evaluationController.reviewEvaluation
 );
 
 // DELETE /api/evaluations/:id
 router.delete(
   "/:id",
-  auth,
-  roleCheck(["hr"]),
+  [auth, checkRole("hr", "supervisor")],
   evaluationController.deleteEvaluation
+);
+
+// Evaluation submissions
+router.post(
+  "/:id/submit",
+  [
+    auth,
+    check("scores", "Scores must be an array").isArray(),
+    check("scores.*.criteriaId", "Criteria ID is required").not().isEmpty(),
+    check("scores.*.score", "Score must be between 1 and 5").isInt({
+      min: 1,
+      max: 5,
+    }),
+    check("scores.*.comments", "Comments are required").not().isEmpty(),
+  ],
+  evaluationController.submitEvaluation
 );
 
 module.exports = router;

@@ -1,20 +1,20 @@
-const { Event, EventParticipant, User } = require("../models");
+const { Event, User, EventParticipant } = require("../models");
 const { validationResult } = require("express-validator");
 
 // Get all events
-exports.getAllEvents = async (req, res) => {
+const getAllEvents = async (req, res) => {
   try {
     const events = await Event.findAll({
       include: [
         {
           model: User,
-          as: "creator",
+          as: "participants",
           attributes: ["id", "name", "email"],
+          through: { attributes: ["attended"] },
         },
       ],
       order: [["startDate", "ASC"]],
     });
-
     res.json(events);
   } catch (error) {
     console.error("Error fetching events:", error);
@@ -22,22 +22,37 @@ exports.getAllEvents = async (req, res) => {
   }
 };
 
-// Get event by ID
-exports.getEventById = async (req, res) => {
+// Get user's events
+const getUserEvents = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const event = await Event.findByPk(id, {
+    const events = await Event.findAll({
       include: [
         {
           model: User,
-          as: "creator",
+          as: "participants",
+          where: { id: req.user.id },
           attributes: ["id", "name", "email"],
+          through: { attributes: ["attended"] },
         },
+      ],
+      order: [["startDate", "ASC"]],
+    });
+    res.json(events);
+  } catch (error) {
+    console.error("Error fetching user events:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get event by ID
+const getEventById = async (req, res) => {
+  try {
+    const event = await Event.findByPk(req.params.id, {
+      include: [
         {
           model: User,
           as: "participants",
-          attributes: ["id", "name", "email", "role", "department"],
+          attributes: ["id", "name", "email"],
           through: { attributes: ["attended"] },
         },
       ],
@@ -54,23 +69,16 @@ exports.getEventById = async (req, res) => {
   }
 };
 
-// Create new event
-exports.createEvent = async (req, res) => {
+// Create event
+const createEvent = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const {
-      title,
-      description,
-      startDate,
-      endDate,
-      location,
-      type,
-      participants,
-    } = req.body;
+    const { title, description, startDate, endDate, type, participants } =
+      req.body;
 
     // Create event
     const event = await Event.create({
@@ -78,20 +86,13 @@ exports.createEvent = async (req, res) => {
       description,
       startDate,
       endDate,
-      location,
       type,
       createdBy: req.user.id,
     });
 
-    // Add participants
-    if (participants && participants.length) {
-      const participantRecords = participants.map((userId) => ({
-        eventId: event.id,
-        userId,
-        attended: null,
-      }));
-
-      await EventParticipant.bulkCreate(participantRecords);
+    // Add participants if provided
+    if (participants && participants.length > 0) {
+      await event.setParticipants(participants);
     }
 
     // Get created event with participants
@@ -99,13 +100,8 @@ exports.createEvent = async (req, res) => {
       include: [
         {
           model: User,
-          as: "creator",
-          attributes: ["id", "name", "email"],
-        },
-        {
-          model: User,
           as: "participants",
-          attributes: ["id", "name", "email", "role", "department"],
+          attributes: ["id", "name", "email"],
           through: { attributes: ["attended"] },
         },
       ],
@@ -119,79 +115,42 @@ exports.createEvent = async (req, res) => {
 };
 
 // Update event
-exports.updateEvent = async (req, res) => {
+const updateEvent = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { id } = req.params;
-    const {
-      title,
-      description,
-      startDate,
-      endDate,
-      location,
-      type,
-      participants,
-    } = req.body;
-
-    // Find event
-    const event = await Event.findByPk(id);
-
+    const event = await Event.findByPk(req.params.id);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Check if user is authorized to update this event
-    const user = await User.findByPk(req.user.id);
-
-    if (event.createdBy !== req.user.id && user.role !== "hr") {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to update this event" });
-    }
+    const { title, description, startDate, endDate, type, participants } =
+      req.body;
 
     // Update event
     await event.update({
       title: title || event.title,
-      description: description !== undefined ? description : event.description,
+      description: description || event.description,
       startDate: startDate || event.startDate,
       endDate: endDate || event.endDate,
-      location: location !== undefined ? location : event.location,
       type: type || event.type,
     });
 
-    // Update participants
-    if (participants && participants.length) {
-      // Remove existing participants
-      await EventParticipant.destroy({
-        where: { eventId: id },
-      });
-
-      // Add new participants
-      const participantRecords = participants.map((userId) => ({
-        eventId: id,
-        userId,
-        attended: null,
-      }));
-
-      await EventParticipant.bulkCreate(participantRecords);
+    // Update participants if provided
+    if (participants) {
+      await event.setParticipants(participants);
     }
 
     // Get updated event with participants
-    const updatedEvent = await Event.findByPk(id, {
+    const updatedEvent = await Event.findByPk(event.id, {
       include: [
         {
           model: User,
-          as: "creator",
-          attributes: ["id", "name", "email"],
-        },
-        {
-          model: User,
           as: "participants",
-          attributes: ["id", "name", "email", "role", "department"],
+          attributes: ["id", "name", "email"],
           through: { attributes: ["attended"] },
         },
       ],
@@ -205,29 +164,14 @@ exports.updateEvent = async (req, res) => {
 };
 
 // Delete event
-exports.deleteEvent = async (req, res) => {
+const deleteEvent = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    // Find event
-    const event = await Event.findByPk(id);
-
+    const event = await Event.findByPk(req.params.id);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Check if user is authorized to delete this event
-    const user = await User.findByPk(req.user.id);
-
-    if (event.createdBy !== req.user.id && user.role !== "hr") {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to delete this event" });
-    }
-
-    // Delete event
     await event.destroy();
-
     res.json({ message: "Event deleted successfully" });
   } catch (error) {
     console.error("Error deleting event:", error);
@@ -235,68 +179,40 @@ exports.deleteEvent = async (req, res) => {
   }
 };
 
-// Get user events
-exports.getUserEvents = async (req, res) => {
+// Update attendance
+const updateAttendance = async (req, res) => {
   try {
-    const { id } = req.user; // From auth middleware
-
-    const events = await Event.findAll({
-      include: [
-        {
-          model: User,
-          as: "participants",
-          where: { id },
-          attributes: [],
-        },
-      ],
-      order: [["startDate", "ASC"]],
-    });
-
-    res.json(events);
-  } catch (error) {
-    console.error("Error fetching user events:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Update event attendance
-exports.updateAttendance = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { eventId, userId } = req.params;
     const { attended } = req.body;
 
     // Find event participant
-    const eventParticipant = await EventParticipant.findOne({
+    const participant = await EventParticipant.findOne({
       where: {
         eventId,
         userId,
       },
     });
 
-    if (!eventParticipant) {
-      return res.status(404).json({ message: "Event participant not found" });
-    }
-
-    // Check if user is authorized to update attendance
-    const user = await User.findByPk(req.user.id);
-
-    if (user.role !== "hr" && user.role !== "supervisor") {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to update attendance" });
+    if (!participant) {
+      return res.status(404).json({ message: "Participant not found" });
     }
 
     // Update attendance
-    await eventParticipant.update({ attended });
+    await participant.update({ attended });
 
-    res.json(eventParticipant);
+    res.json({ message: "Attendance updated successfully" });
   } catch (error) {
     console.error("Error updating attendance:", error);
     res.status(500).json({ message: "Server error" });
   }
+};
+
+module.exports = {
+  getAllEvents,
+  getUserEvents,
+  getEventById,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  updateAttendance,
 };

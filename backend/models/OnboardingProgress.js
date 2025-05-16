@@ -6,17 +6,9 @@ const OnboardingProgress = sequelize.define(
   "OnboardingProgress",
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
       primaryKey: true,
-    },
-    userId: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: "Users",
-        key: "id",
-      },
+      defaultValue: DataTypes.UUIDV4,
     },
     stage: {
       type: DataTypes.ENUM("prepare", "orient", "land", "integrate", "excel"),
@@ -31,7 +23,6 @@ const OnboardingProgress = sequelize.define(
     stageStartDate: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW,
     },
     estimatedCompletionDate: {
       type: DataTypes.DATE,

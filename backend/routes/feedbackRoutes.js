@@ -1,8 +1,7 @@
 const express = require("express");
 const { check } = require("express-validator");
 const feedbackController = require("../controllers/feedbackController");
-const auth = require("../middleware/auth");
-const roleCheck = require("../middleware/roleCheck");
+const { auth, checkRole } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -16,7 +15,7 @@ router.get("/received", auth, feedbackController.getReceivedFeedback);
 router.get(
   "/department/:department",
   auth,
-  roleCheck(["hr"]),
+  checkRole("hr"),
   feedbackController.getDepartmentFeedback
 );
 

@@ -5,9 +5,9 @@ const Survey = sequelize.define(
   "Survey",
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     title: {
       type: DataTypes.STRING,
@@ -25,21 +25,15 @@ const Survey = sequelize.define(
         "training",
         "general"
       ),
-      allowNull: false,
       defaultValue: "general",
     },
     status: {
       type: DataTypes.ENUM("draft", "active", "completed"),
-      allowNull: false,
       defaultValue: "draft",
     },
     createdBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
-      references: {
-        model: "Users",
-        key: "id",
-      },
     },
     dueDate: {
       type: DataTypes.DATE,
@@ -47,7 +41,6 @@ const Survey = sequelize.define(
     },
     targetRole: {
       type: DataTypes.ENUM("employee", "supervisor", "manager", "hr", "all"),
-      allowNull: false,
       defaultValue: "employee",
     },
     targetProgram: {
@@ -59,7 +52,6 @@ const Survey = sequelize.define(
         "workExperience",
         "all"
       ),
-      allowNull: false,
       defaultValue: "all",
     },
   },

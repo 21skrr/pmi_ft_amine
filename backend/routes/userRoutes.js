@@ -1,76 +1,59 @@
 const express = require("express");
+const router = express.Router();
 const { check } = require("express-validator");
 const userController = require("../controllers/userController");
-const auth = require("../middleware/auth");
-const roleCheck = require("../middleware/roleCheck");
+const { auth, checkRole } = require("../middleware/auth");
 
-const router = express.Router();
+// Validation middleware
+const userValidation = [
+  check("name").notEmpty().withMessage("Name is required"),
+  check("email").isEmail().withMessage("Valid email is required"),
+  check("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long"),
+  check("role")
+    .isIn(["employee", "supervisor", "manager", "admin"])
+    .withMessage("Invalid role"),
+  check("department").notEmpty().withMessage("Department is required"),
+  check("startDate").isISO8601().withMessage("Valid start date is required"),
+  check("programType")
+    .isIn([
+      "inkompass",
+      "earlyTalent",
+      "apprenticeship",
+      "academicPlacement",
+      "workExperience",
+    ])
+    .withMessage("Invalid program type"),
+];
 
-// GET /api/users
-router.get("/", auth, roleCheck(["hr", "manager"]), userController.getAllUsers);
+// Get all users (admin only)
+router.get("/", auth, checkRole("admin"), userController.getAllUsers);
 
-// GET /api/users/:id
+// Get user by ID
 router.get("/:id", auth, userController.getUserById);
 
-// POST /api/users
+// Create new user (admin only)
 router.post(
   "/",
-  [
-    auth,
-    roleCheck(["hr"]),
-    check("name", "Name is required").not().isEmpty(),
-    check("email", "Please include a valid email").isEmail(),
-    check(
-      "password",
-      "Please enter a password with 6 or more characters"
-    ).isLength({ min: 6 }),
-    check("role", "Role is required").isIn([
-      "employee",
-      "supervisor",
-      "manager",
-      "hr",
-    ]),
-  ],
+  auth,
+  checkRole("admin"),
+  userValidation,
   userController.createUser
 );
 
-// PUT /api/users/:id
-router.put(
-  "/:id",
-  [
-    auth,
-    roleCheck(["hr"]),
-    check("email", "Please include a valid email").optional().isEmail(),
-    check("role", "Invalid role")
-      .optional()
-      .isIn(["employee", "supervisor", "manager", "hr"]),
-  ],
-  userController.updateUser
-);
+// Update user
+router.put("/:id", auth, userValidation, userController.updateUser);
 
-// DELETE /api/users/:id
-router.delete("/:id", auth, roleCheck(["hr"]), userController.deleteUser);
+// Delete user (admin only)
+router.delete("/:id", auth, checkRole("admin"), userController.deleteUser);
 
-// GET /api/users/team/members
+// Get team members (supervisor/manager only)
 router.get(
   "/team/members",
   auth,
-  roleCheck(["supervisor", "manager"]),
+  checkRole("supervisor", "manager"),
   userController.getTeamMembers
-);
-
-// PUT /api/users/:id/password
-router.put(
-  "/:id/password",
-  [
-    auth,
-    check("currentPassword", "Current password is required").exists(),
-    check(
-      "newPassword",
-      "Please enter a new password with 6 or more characters"
-    ).isLength({ min: 6 }),
-  ],
-  userController.updatePassword
 );
 
 module.exports = router;

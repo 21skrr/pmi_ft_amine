@@ -1,21 +1,42 @@
 const jwt = require("jsonwebtoken");
+const { User } = require("../models");
 
-module.exports = (req, res, next) => {
-  // Get token from header
-  const token = req.header("x-auth-token");
-
-  // Check if no token
-  if (!token) {
-    return res.status(401).json({ message: "No token, authorization denied" });
-  }
-
-  // Verify token
+const auth = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = req.header("Authorization")?.replace("Bearer ", "");
 
-    req.user = decoded;
+    if (!token) {
+      throw new Error();
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "your-secret-key"
+    );
+    const user = await User.findByPk(decoded.id);
+
+    if (!user) {
+      throw new Error();
+    }
+
+    req.token = token;
+    req.user = user;
     next();
-  } catch (err) {
-    res.status(401).json({ message: "Token is not valid" });
+  } catch (error) {
+    res.status(401).json({ error: "Please authenticate." });
   }
+};
+
+const checkRole = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+    next();
+  };
+};
+
+module.exports = {
+  auth,
+  checkRole,
 };

@@ -1,60 +1,36 @@
 const express = require("express");
-const { check } = require("express-validator");
+const { body } = require("express-validator");
 const taskController = require("../controllers/taskController");
-const auth = require("../middleware/auth");
-const roleCheck = require("../middleware/roleCheck");
+const { auth, checkRole } = require("../middleware/auth");
 
 const router = express.Router();
 
-// GET /api/tasks
+// Validation middleware
+const taskValidation = [
+  body("title").trim().notEmpty().withMessage("Title is required"),
+  body("description").trim().notEmpty().withMessage("Description is required"),
+  body("dueDate").isDate().withMessage("Invalid due date"),
+  body("priority")
+    .isIn(["low", "medium", "high"])
+    .withMessage("Invalid priority level"),
+  body("onboardingStage")
+    .isIn(["prepare", "welcome", "connect", "develop", "perform"])
+    .withMessage("Invalid onboarding stage"),
+  body("controlledBy")
+    .isIn(["employee", "supervisor", "hr"])
+    .withMessage("Invalid controller"),
+];
+
+// Routes
 router.get("/", auth, taskController.getUserTasks);
-
-// GET /api/tasks/:id
 router.get("/:id", auth, taskController.getTaskById);
-
-// POST /api/tasks
-router.post(
-  "/",
-  [
-    auth,
-    roleCheck(["hr", "supervisor", "manager"]),
-    check("userId", "User ID is required").not().isEmpty(),
-    check("title", "Title is required").not().isEmpty(),
-    check("dueDate", "Due date is required").isISO8601(),
-    check("priority", "Priority must be high, medium, or low").isIn([
-      "high",
-      "medium",
-      "low",
-    ]),
-    check("controlledBy", "Controller must be hr, supervisor, or manager").isIn(
-      ["hr", "supervisor", "manager"]
-    ),
-  ],
-  taskController.createTask
-);
-
-// PUT /api/tasks/:id
-router.put(
-  "/:id",
-  [
-    auth,
-    check("title", "Title is required").optional(),
-    check("dueDate", "Due date must be a valid date").optional().isISO8601(),
-    check("priority", "Priority must be high, medium, or low")
-      .optional()
-      .isIn(["high", "medium", "low"]),
-  ],
-  taskController.updateTask
-);
-
-// DELETE /api/tasks/:id
+router.post("/", auth, taskValidation, taskController.createTask);
+router.put("/:id", auth, taskValidation, taskController.updateTask);
 router.delete("/:id", auth, taskController.deleteTask);
-
-// GET /api/tasks/employee/:employeeId
 router.get(
   "/employee/:employeeId",
   auth,
-  roleCheck(["supervisor", "manager", "hr"]),
+  checkRole("supervisor", "manager", "hr"),
   taskController.getEmployeeTasks
 );
 

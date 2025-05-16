@@ -3,16 +3,14 @@ const { validationResult } = require("express-validator");
 const { Op } = require("sequelize");
 
 // Get onboarding progress for a user
-exports.getOnboardingProgress = async (req, res) => {
+const getOnboardingProgress = async (req, res) => {
   try {
-    const { id } = req.params;
-
     const progress = await OnboardingProgress.findOne({
-      where: { userId: id },
+      where: { userId: req.params.id },
       include: [
         {
           model: User,
-          attributes: ["id", "name", "email", "programType", "startDate"],
+          attributes: ["id", "name", "email", "role", "department"],
         },
       ],
     });
@@ -21,10 +19,17 @@ exports.getOnboardingProgress = async (req, res) => {
       return res.status(404).json({ message: "Onboarding progress not found" });
     }
 
+    // Check if user has permission to view this progress
+    if (req.user.role !== "hr" && req.user.id !== req.params.id) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to view this progress" });
+    }
+
     // Get tasks for each onboarding stage
     const tasks = await Task.findAll({
       where: {
-        userId: id,
+        userId: req.params.id,
         onboardingStage: {
           [Op.ne]: null,
         },
@@ -52,73 +57,45 @@ exports.getOnboardingProgress = async (req, res) => {
 };
 
 // Update onboarding progress
-exports.updateOnboardingProgress = async (req, res) => {
+const updateOnboardingProgress = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { id } = req.params;
-    const { stage, progress } = req.body;
-
-    // Find onboarding progress
-    const onboardingProgress = await OnboardingProgress.findOne({
-      where: { userId: id },
+    const progress = await OnboardingProgress.findOne({
+      where: { userId: req.params.id },
     });
 
-    if (!onboardingProgress) {
+    if (!progress) {
       return res.status(404).json({ message: "Onboarding progress not found" });
     }
 
-    // Check if user is authorized to update onboarding progress
-    const user = await User.findByPk(req.user.id);
-
-    if (user.role !== "hr" && user.role !== "supervisor" && user.id !== id) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to update onboarding progress" });
-    }
+    const { stage, progress: progressValue } = req.body;
 
     // Update progress
     const updateData = {};
-
-    if (stage && stage !== onboardingProgress.stage) {
+    if (stage) {
       updateData.stage = stage;
       updateData.stageStartDate = new Date();
-
-      // Set estimated completion date based on stage
-      const estimatedDays = {
-        prepare: 1,
-        orient: 1,
-        land: 5,
-        integrate: 4,
-        excel: 30,
-      };
-
       updateData.estimatedCompletionDate = new Date(
-        Date.now() + (estimatedDays[stage] || 30) * 24 * 60 * 60 * 1000
-      );
+        Date.now() + 30 * 24 * 60 * 60 * 1000
+      ); // 30 days from now
+    }
+    if (progressValue !== undefined) {
+      updateData.progress = progressValue;
     }
 
-    if (progress !== undefined) {
-      updateData.progress = progress;
-    }
+    await progress.update(updateData);
 
-    await onboardingProgress.update(updateData);
-
-    // Also update user's onboardingProgress field for quick access
-    if (progress !== undefined) {
-      await User.update({ onboardingProgress: progress }, { where: { id } });
-    }
-
-    // Get updated onboarding progress
+    // Get updated progress
     const updatedProgress = await OnboardingProgress.findOne({
-      where: { userId: id },
+      where: { userId: req.params.id },
       include: [
         {
           model: User,
-          attributes: ["id", "name", "email", "programType", "startDate"],
+          attributes: ["id", "name", "email", "role", "department"],
         },
       ],
     });
@@ -128,4 +105,9 @@ exports.updateOnboardingProgress = async (req, res) => {
     console.error("Error updating onboarding progress:", error);
     res.status(500).json({ message: "Server error" });
   }
+};
+
+module.exports = {
+  getOnboardingProgress,
+  updateOnboardingProgress,
 };

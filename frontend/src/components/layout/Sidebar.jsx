@@ -1,6 +1,6 @@
 // frontend/src/components/layout/Sidebar.jsx
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, NavLink } from "react-router-dom";
 import {
   X,
   LayoutDashboard,
@@ -18,6 +18,14 @@ import {
   List,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+
+const navigation = [
+  { name: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+  { name: "Surveys", to: "/surveys", icon: FileText },
+  { name: "Roles & Permissions", to: "/roles", icon: Users },
+  { name: "Reports", to: "/reports", icon: BarChart },
+  { name: "Settings", to: "/settings", icon: Settings },
+];
 
 const Sidebar = ({ open, setOpen }) => {
   const { user } = useAuth();
@@ -92,43 +100,31 @@ const Sidebar = ({ open, setOpen }) => {
         {/* Sidebar Content */}
         <div className="p-4 h-full overflow-y-auto">
           <nav className="space-y-1">
-            <NavItem to="/dashboard" icon={LayoutDashboard}>
-              Dashboard
-            </NavItem>
-
-            <NavItem to="/programs" icon={Briefcase}>
-              Programs
-            </NavItem>
-
-            <NavItem to="/checklists" icon={CheckSquare}>
-              Checklists
-            </NavItem>
-
-            <NavItem to="/calendar" icon={Calendar}>
-              Calendar
-            </NavItem>
-
-            <NavItem to="/forms" icon={FileText}>
-              Forms & Surveys
-            </NavItem>
-
-            <NavItem to="/evaluations" icon={ClipboardCheck}>
-              Evaluations
-            </NavItem>
-
-            <NavItem to="/feedback" icon={MessageSquare}>
-              Feedback
-            </NavItem>
-
-            {(user.role === "supervisor" || user.role === "manager") && (
-              <NavItem to="/team" icon={Users}>
-                Team
-              </NavItem>
-            )}
-
-            <NavItem to="/resources" icon={FileBox}>
-              Resources
-            </NavItem>
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                      isActive
+                        ? "bg-gray-900 text-white"
+                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                    }`
+                  }
+                >
+                  <Icon
+                    className={`mr-3 h-6 w-6 ${
+                      location.pathname === item.to
+                        ? "text-white"
+                        : "text-gray-400 group-hover:text-gray-300"
+                    }`}
+                  />
+                  {item.name}
+                </NavLink>
+              );
+            })}
           </nav>
 
           {/* HR Admin Section */}

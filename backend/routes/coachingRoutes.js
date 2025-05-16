@@ -1,16 +1,24 @@
 const express = require("express");
 const { check } = require("express-validator");
 const coachingController = require("../controllers/coachingController");
-const auth = require("../middleware/auth");
-const roleCheck = require("../middleware/roleCheck");
+const { auth, checkRole } = require("../middleware/auth");
 
 const router = express.Router();
+
+// Validation middleware
+const sessionValidation = [
+  check("date", "Date is required").isISO8601(),
+  check("duration", "Duration is required").isInt({ min: 15 }),
+  check("notes", "Notes are required").not().isEmpty(),
+  check("goals", "Goals must be an array").isArray(),
+  check("goals.*", "Goal text is required").not().isEmpty(),
+];
 
 // GET /api/coaching/supervisor
 router.get(
   "/supervisor",
   auth,
-  roleCheck(["supervisor"]),
+  checkRole("supervisor"),
   coachingController.getSupervisorSessions
 );
 
@@ -23,34 +31,22 @@ router.get("/:id", auth, coachingController.getSessionById);
 // POST /api/coaching
 router.post(
   "/",
-  [
-    auth,
-    roleCheck(["supervisor", "hr"]),
-    check("employeeId", "Employee ID is required").not().isEmpty(),
-    check("scheduledDate", "Scheduled date is required").isISO8601(),
-  ],
+  [auth, checkRole("supervisor"), sessionValidation],
   coachingController.createSession
 );
 
 // PUT /api/coaching/:id
 router.put(
   "/:id",
-  [
-    auth,
-    check(
-      "status",
-      "Status must be scheduled, completed, cancelled, or rescheduled"
-    )
-      .optional()
-      .isIn(["scheduled", "completed", "cancelled", "rescheduled"]),
-    check("scheduledDate", "Scheduled date must be a valid date")
-      .optional()
-      .isISO8601(),
-  ],
+  [auth, checkRole("supervisor"), sessionValidation],
   coachingController.updateSession
 );
 
 // DELETE /api/coaching/:id
-router.delete("/:id", auth, coachingController.deleteSession);
+router.delete(
+  "/:id",
+  [auth, checkRole("supervisor")],
+  coachingController.deleteSession
+);
 
 module.exports = router;

@@ -1,13 +1,16 @@
 const express = require("express");
 const { check } = require("express-validator");
 const eventController = require("../controllers/eventController");
-const auth = require("../middleware/auth");
+const { auth } = require("../middleware/auth");
 const roleCheck = require("../middleware/roleCheck");
 
 const router = express.Router();
 
 // GET /api/events
 router.get("/", auth, eventController.getAllEvents);
+
+// GET /api/events/user
+router.get("/user", auth, eventController.getUserEvents);
 
 // GET /api/events/:id
 router.get("/:id", auth, eventController.getEventById);
@@ -49,9 +52,6 @@ router.put(
 
 // DELETE /api/events/:id
 router.delete("/:id", auth, eventController.deleteEvent);
-
-// GET /api/events/user
-router.get("/user", auth, eventController.getUserEvents);
 
 // PUT /api/events/:eventId/participants/:userId
 router.put(

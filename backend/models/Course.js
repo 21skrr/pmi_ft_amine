@@ -5,9 +5,9 @@ const Course = sequelize.define(
   "Course",
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     title: {
       type: DataTypes.STRING,
@@ -31,21 +31,15 @@ const Course = sequelize.define(
         "workExperience",
         "all"
       ),
-      allowNull: false,
       defaultValue: "all",
     },
     isRequired: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
       defaultValue: true,
     },
     createdBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
-      references: {
-        model: "Users",
-        key: "id",
-      },
     },
   },
   {

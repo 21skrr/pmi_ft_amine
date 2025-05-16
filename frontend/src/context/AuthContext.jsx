@@ -2,7 +2,15 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { login as apiLogin } from "../api/authApi";
 import { getCurrentUser } from "../api/userApi";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,13 +19,10 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check if user is logged in
-    const savedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-
-    if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
-
     setLoading(false);
   }, []);
 
@@ -71,13 +76,20 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("user", JSON.stringify(updatedUser));
   };
 
+  const value = {
+    user,
+    loading,
+    error,
+    login,
+    logout,
+    updateUserContext,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{ user, loading, error, login, logout, updateUserContext }}
-    >
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export default AuthContext;

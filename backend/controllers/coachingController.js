@@ -1,279 +1,133 @@
 const { CoachingSession, User } = require("../models");
 const { validationResult } = require("express-validator");
 
-// Get coaching sessions for an employee
-exports.getEmployeeCoachingSessions = async (req, res) => {
+// Get supervisor's coaching sessions
+const getSupervisorSessions = async (req, res) => {
   try {
-    const { id } = req.user; // From auth middleware
-
     const sessions = await CoachingSession.findAll({
-      where: { employeeId: id },
+      where: { supervisorId: req.user.id },
       include: [
-        {
-          model: User,
-          as: "supervisor",
-          attributes: ["id", "name", "email"],
-        },
+        { model: User, as: "supervisor" },
+        { model: User, as: "employee" },
       ],
-      order: [["scheduledDate", "DESC"]],
     });
-
     res.json(sessions);
   } catch (error) {
-    console.error("Error fetching coaching sessions:", error);
+    console.error("Error fetching supervisor sessions:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Get coaching sessions as supervisor
-exports.getSupervisorCoachingSessions = async (req, res) => {
+// Get employee's coaching sessions
+const getEmployeeSessions = async (req, res) => {
   try {
-    const { id } = req.user; // From auth middleware
-
     const sessions = await CoachingSession.findAll({
-      where: { supervisorId: id },
+      where: { employeeId: req.user.id },
       include: [
-        {
-          model: User,
-          as: "employee",
-          attributes: ["id", "name", "email", "department", "programType"],
-        },
+        { model: User, as: "supervisor" },
+        { model: User, as: "employee" },
       ],
-      order: [["scheduledDate", "DESC"]],
     });
-
     res.json(sessions);
   } catch (error) {
-    console.error("Error fetching supervisor coaching sessions:", error);
+    console.error("Error fetching employee sessions:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Get coaching session by ID
-exports.getCoachingSessionById = async (req, res) => {
+// Get session by ID
+const getSessionById = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const session = await CoachingSession.findByPk(id, {
+    const session = await CoachingSession.findByPk(req.params.id, {
       include: [
-        {
-          model: User,
-          as: "employee",
-          attributes: ["id", "name", "email", "department", "programType"],
-        },
-        {
-          model: User,
-          as: "supervisor",
-          attributes: ["id", "name", "email"],
-        },
+        { model: User, as: "supervisor" },
+        { model: User, as: "employee" },
       ],
     });
-
     if (!session) {
-      return res.status(404).json({ message: "Coaching session not found" });
+      return res.status(404).json({ message: "Session not found" });
     }
-
-    // Check if user is authorized to view this session
-    const { id: userId, role } = req.user;
-
-    if (
-      session.employeeId !== userId &&
-      session.supervisorId !== userId &&
-      role !== "hr"
-    ) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to view this coaching session" });
-    }
-
     res.json(session);
   } catch (error) {
-    console.error("Error fetching coaching session:", error);
+    console.error("Error fetching session:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Create new coaching session
-exports.createCoachingSession = async (req, res) => {
+// Create coaching session
+const createSession = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { employeeId, scheduledDate, goal, topicTags } = req.body;
-
-    // Check if user is a supervisor
-    const { id: userId, role } = req.user;
-
-    if (role !== "supervisor" && role !== "hr") {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to create coaching sessions" });
-    }
-
-    // If supervisor, check if the employee is in their team
-    if (role === "supervisor") {
-      const employee = await User.findByPk(employeeId);
-
-      if (!employee || employee.supervisorId !== userId) {
-        return res
-          .status(403)
-          .json({ message: "Not authorized to coach this employee" });
-      }
-    }
-
-    // Create coaching session
+    const { employeeId, date, duration, notes, goals } = req.body;
     const session = await CoachingSession.create({
-      supervisorId: userId,
+      supervisorId: req.user.id,
       employeeId,
-      scheduledDate,
-      goal,
-      status: "scheduled",
-      topicTags: topicTags || [],
+      date,
+      duration,
+      notes,
+      goals,
     });
 
-    // Get created session
-    const createdSession = await CoachingSession.findByPk(session.id, {
-      include: [
-        {
-          model: User,
-          as: "employee",
-          attributes: ["id", "name", "email", "department", "programType"],
-        },
-        {
-          model: User,
-          as: "supervisor",
-          attributes: ["id", "name", "email"],
-        },
-      ],
-    });
-
-    res.status(201).json(createdSession);
+    res.status(201).json(session);
   } catch (error) {
-    console.error("Error creating coaching session:", error);
+    console.error("Error creating session:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 // Update coaching session
-exports.updateCoachingSession = async (req, res) => {
+const updateSession = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { id } = req.params;
-    const {
-      scheduledDate,
-      actualDate,
-      status,
-      goal,
-      notes,
-      outcome,
-      topicTags,
-    } = req.body;
-
-    // Find coaching session
-    const session = await CoachingSession.findByPk(id);
-
+    const session = await CoachingSession.findByPk(req.params.id);
     if (!session) {
-      return res.status(404).json({ message: "Coaching session not found" });
+      return res.status(404).json({ message: "Session not found" });
     }
 
-    // Check if user is authorized to update this session
-    const { id: userId, role } = req.user;
-
-    if (role !== "hr" && session.supervisorId !== userId) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to update this coaching session" });
-    }
-
-    // Update session
-    const updateData = {};
-
-    if (scheduledDate) {
-      updateData.scheduledDate = scheduledDate;
-    }
-
-    if (actualDate) {
-      updateData.actualDate = actualDate;
-    }
-
-    if (status) {
-      updateData.status = status;
-    }
-
-    if (goal !== undefined) {
-      updateData.goal = goal;
-    }
-
-    if (notes !== undefined) {
-      updateData.notes = notes;
-    }
-
-    if (outcome !== undefined) {
-      updateData.outcome = outcome;
-    }
-
-    if (topicTags) {
-      updateData.topicTags = topicTags;
-    }
-
-    await session.update(updateData);
-
-    // Get updated session
-    const updatedSession = await CoachingSession.findByPk(id, {
-      include: [
-        {
-          model: User,
-          as: "employee",
-          attributes: ["id", "name", "email", "department", "programType"],
-        },
-        {
-          model: User,
-          as: "supervisor",
-          attributes: ["id", "name", "email"],
-        },
-      ],
+    const { date, duration, notes, goals } = req.body;
+    await session.update({
+      date: date || session.date,
+      duration: duration || session.duration,
+      notes: notes || session.notes,
+      goals: goals || session.goals,
     });
 
-    res.json(updatedSession);
+    res.json(session);
   } catch (error) {
-    console.error("Error updating coaching session:", error);
+    console.error("Error updating session:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 // Delete coaching session
-exports.deleteCoachingSession = async (req, res) => {
+const deleteSession = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    // Find coaching session
-    const session = await CoachingSession.findByPk(id);
-
+    const session = await CoachingSession.findByPk(req.params.id);
     if (!session) {
-      return res.status(404).json({ message: "Coaching session not found" });
+      return res.status(404).json({ message: "Session not found" });
     }
 
-    // Check if user is authorized to delete this session
-    const { id: userId, role } = req.user;
-
-    if (role !== "hr" && session.supervisorId !== userId) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to delete this coaching session" });
-    }
-
-    // Delete session
     await session.destroy();
-
-    res.json({ message: "Coaching session deleted successfully" });
+    res.json({ message: "Session deleted successfully" });
   } catch (error) {
-    console.error("Error deleting coaching session:", error);
+    console.error("Error deleting session:", error);
     res.status(500).json({ message: "Server error" });
   }
+};
+
+module.exports = {
+  getSupervisorSessions,
+  getEmployeeSessions,
+  getSessionById,
+  createSession,
+  updateSession,
+  deleteSession,
 };

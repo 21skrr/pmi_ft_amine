@@ -1,6 +1,6 @@
 const express = require("express");
 const notificationController = require("../controllers/notificationController");
-const auth = require("../middleware/auth");
+const { auth } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -12,5 +12,8 @@ router.put("/:id/read", auth, notificationController.markAsRead);
 
 // PUT /api/notifications/read-all
 router.put("/read-all", auth, notificationController.markAllAsRead);
+
+// DELETE /api/notifications/:id
+router.delete("/:id", auth, notificationController.deleteNotification);
 
 module.exports = router;

@@ -2,8 +2,66 @@
 const jwt = require("jsonwebtoken");
 const { User, OnboardingProgress } = require("../models");
 const { validationResult } = require("express-validator");
+const bcrypt = require("bcryptjs");
 
-exports.login = async (req, res) => {
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    process.env.JWT_SECRET || "your-secret-key",
+    { expiresIn: "24h" }
+  );
+};
+
+// Authentication Controllers
+const register = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { name, email, password, role, department, startDate, programType } =
+      req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      department,
+      startDate,
+      programType,
+    });
+
+    // Create JWT token
+    const token = generateToken(user);
+
+    // Remove password from response
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    res.status(201).json({
+      token,
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error("Error registering user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const login = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -12,69 +70,57 @@ exports.login = async (req, res) => {
 
     const { email, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({
-      where: { email },
-      include: [
-        {
-          model: OnboardingProgress,
-          attributes: ["stage", "progress"],
-        },
-      ],
-    });
-
+    // Find user
+    const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Validate password
-    const isPasswordValid = await user.validatePassword(password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid email or password" });
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" }
-    );
+    // Create JWT token
+    const token = generateToken(user);
 
-    // Return user info and token
+    // Remove password from response
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
     res.json({
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        department: user.department,
-        startDate: user.startDate,
-        programType: user.programType,
-        onboardingStage: user.OnboardingProgress
-          ? user.OnboardingProgress.stage
-          : null,
-        onboardingProgress: user.OnboardingProgress
-          ? user.OnboardingProgress.progress
-          : 0,
-      },
+      user: userResponse,
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Error logging in:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// controllers/userController.js
-const { User, OnboardingProgress } = require("../models");
-const { validationResult } = require("express-validator");
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ["password"] },
+    });
 
-// Get all users
-exports.getAllUsers = async (req, res) => {
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// User Management Controllers
+const getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: { exclude: ["passwordHash"] },
+      attributes: { exclude: ["password"] },
       include: [
         {
           model: OnboardingProgress,
@@ -90,13 +136,12 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Get user by ID
-exports.getUserById = async (req, res) => {
+const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
 
     const user = await User.findByPk(id, {
-      attributes: { exclude: ["passwordHash"] },
+      attributes: { exclude: ["password"] },
       include: [
         {
           model: OnboardingProgress,
@@ -121,70 +166,49 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-// Create new user (for HR)
-exports.createUser = async (req, res) => {
+const createUser = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const {
-      name,
-      email,
-      password,
-      role,
-      department,
-      startDate,
-      programType,
-      supervisorId,
-    } = req.body;
+    const { name, email, password, role, department, startDate, programType } =
+      req.body;
 
-    // Check if email is already in use
+    // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: "Email is already in use" });
+      return res.status(400).json({ error: "User already exists" });
     }
 
-    // Create user
+    // Create new user
     const user = await User.create({
       name,
       email,
-      passwordHash: password, // Will be hashed by the model hook
+      password: password,
       role,
       department,
       startDate,
       programType,
-      supervisorId,
     });
 
-    // Create onboarding progress record if role is employee
-    if (role === "employee") {
-      await OnboardingProgress.create({
-        userId: user.id,
-        stage: "prepare",
-        progress: 0,
-        stageStartDate: new Date(),
-        estimatedCompletionDate: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ), // 30 days from now
-      });
-    }
-
-    // Return created user
-    const newUser = await User.findByPk(user.id, {
-      attributes: { exclude: ["passwordHash"] },
+    res.status(201).json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      startDate: user.startDate,
+      programType: user.programType,
     });
-
-    res.status(201).json(newUser);
   } catch (error) {
     console.error("Error creating user:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Update user
-exports.updateUser = async (req, res) => {
+const updateUser = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -192,29 +216,12 @@ exports.updateUser = async (req, res) => {
     }
 
     const { id } = req.params;
-    const {
-      name,
-      email,
-      role,
-      department,
-      startDate,
-      programType,
-      supervisorId,
-    } = req.body;
+    const { name, email, role, department, startDate, programType } = req.body;
 
     // Find user
     const user = await User.findByPk(id);
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
-    }
-
-    // Check if email is already in use by another user
-    if (email && email !== user.email) {
-      const existingUser = await User.findOne({ where: { email } });
-      if (existingUser) {
-        return res.status(400).json({ message: "Email is already in use" });
-      }
     }
 
     // Update user
@@ -225,29 +232,29 @@ exports.updateUser = async (req, res) => {
       department: department || user.department,
       startDate: startDate || user.startDate,
       programType: programType || user.programType,
-      supervisorId: supervisorId || user.supervisorId,
     });
 
-    // Return updated user
-    const updatedUser = await User.findByPk(id, {
-      attributes: { exclude: ["passwordHash"] },
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      startDate: user.startDate,
+      programType: user.programType,
     });
-
-    res.json(updatedUser);
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Delete user
-exports.deleteUser = async (req, res) => {
+const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
     // Find user
     const user = await User.findByPk(id);
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -262,84 +269,62 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-// Get team members (for supervisors and managers)
-exports.getTeamMembers = async (req, res) => {
+const getTeamMembers = async (req, res) => {
   try {
-    const { id } = req.user; // From auth middleware
+    const { department } = req.params;
 
-    const user = await User.findByPk(id);
+    const users = await User.findAll({
+      where: { department },
+      attributes: { exclude: ["password"] },
+      include: [
+        {
+          model: OnboardingProgress,
+          attributes: ["stage", "progress"],
+        },
+      ],
+    });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.role !== "supervisor" && user.role !== "manager") {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    // Get direct subordinates for supervisor
-    // Or all employees for manager
-    let teamMembers;
-
-    if (user.role === "supervisor") {
-      teamMembers = await User.findAll({
-        where: { supervisorId: id },
-        attributes: { exclude: ["passwordHash"] },
-        include: [
-          {
-            model: OnboardingProgress,
-            attributes: ["stage", "progress"],
-          },
-        ],
-      });
-    } else {
-      // For managers, get all employees in their department
-      teamMembers = await User.findAll({
-        where: { department: user.department, role: "employee" },
-        attributes: { exclude: ["passwordHash"] },
-        include: [
-          {
-            model: OnboardingProgress,
-            attributes: ["stage", "progress"],
-          },
-        ],
-      });
-    }
-
-    res.json(teamMembers);
+    res.json(users);
   } catch (error) {
     console.error("Error fetching team members:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Update user password
-exports.updatePassword = async (req, res) => {
+const updatePassword = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
 
     // Find user
-    const user = await User.findByPk(id);
-
+    const user = await User.findByPk(req.params.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if current password is correct
-    const isPasswordValid = await user.validatePassword(currentPassword);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Current password is incorrect" });
+    // Check if user has permission to update password
+    if (req.user.role !== "admin" && req.user.id !== req.params.id) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to update this user's password" });
     }
 
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
     // Update password
-    await user.update({ passwordHash: newPassword }); // Will be hashed by the model hook
+    await user.update({ password: hashedPassword });
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {
@@ -348,223 +333,15 @@ exports.updatePassword = async (req, res) => {
   }
 };
 
-// controllers/taskController.js
-const { Task, User } = require("../models");
-const { validationResult } = require("express-validator");
-
-// Get all tasks for a user
-exports.getUserTasks = async (req, res) => {
-  try {
-    const { id } = req.user; // From auth middleware
-
-    const tasks = await Task.findAll({
-      where: { userId: id },
-      order: [["dueDate", "ASC"]],
-    });
-
-    res.json(tasks);
-  } catch (error) {
-    console.error("Error fetching tasks:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Get task by ID
-exports.getTaskById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const task = await Task.findByPk(id, {
-      include: [
-        {
-          model: User,
-          attributes: ["id", "name", "email"],
-        },
-      ],
-    });
-
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    res.json(task);
-  } catch (error) {
-    console.error("Error fetching task:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Create new task
-exports.createTask = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const {
-      userId,
-      title,
-      description,
-      dueDate,
-      priority,
-      onboardingStage,
-      controlledBy,
-    } = req.body;
-
-    // Create task
-    const task = await Task.create({
-      userId,
-      title,
-      description,
-      dueDate,
-      isCompleted: false,
-      priority,
-      onboardingStage,
-      controlledBy,
-    });
-
-    res.status(201).json(task);
-  } catch (error) {
-    console.error("Error creating task:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Update task
-exports.updateTask = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { id } = req.params;
-    const {
-      title,
-      description,
-      dueDate,
-      isCompleted,
-      priority,
-      onboardingStage,
-    } = req.body;
-
-    // Find task
-    const task = await Task.findByPk(id);
-
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    // Check if user is authorized to update this task
-    const user = await User.findByPk(req.user.id);
-
-    // Only HR can update task status if controlledBy is HR
-    if (
-      task.controlledBy === "hr" &&
-      user.role !== "hr" &&
-      "isCompleted" in req.body
-    ) {
-      return res
-        .status(403)
-        .json({
-          message: "Only HR can update the completion status of this task",
-        });
-    }
-
-    // Update task
-    const updateData = {
-      title: title || task.title,
-      description: description !== undefined ? description : task.description,
-      dueDate: dueDate || task.dueDate,
-      priority: priority || task.priority,
-      onboardingStage: onboardingStage || task.onboardingStage,
-    };
-
-    // Only update completion status if explicitly included
-    if (isCompleted !== undefined) {
-      updateData.isCompleted = isCompleted;
-
-      // If task is being marked as completed, set completedAt
-      if (isCompleted && !task.isCompleted) {
-        updateData.completedAt = new Date();
-      } else if (!isCompleted && task.isCompleted) {
-        updateData.completedAt = null;
-      }
-    }
-
-    await task.update(updateData);
-
-    res.json(task);
-  } catch (error) {
-    console.error("Error updating task:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Delete task
-exports.deleteTask = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Find task
-    const task = await Task.findByPk(id);
-
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
-    }
-
-    // Check if user is authorized to delete this task
-    const user = await User.findByPk(req.user.id);
-
-    // Only HR or the creator can delete tasks
-    if (user.role !== "hr" && task.userId !== req.user.id) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to delete this task" });
-    }
-
-    // Delete task
-    await task.destroy();
-
-    res.json({ message: "Task deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting task:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Get employee tasks for supervisor
-exports.getEmployeeTasks = async (req, res) => {
-  try {
-    const { employeeId } = req.params;
-    const { id, role } = req.user; // From auth middleware
-
-    // Check if user is authorized to view employee tasks
-    if (role !== "supervisor" && role !== "manager" && role !== "hr") {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    // If supervisor, check if the employee is in their team
-    if (role === "supervisor") {
-      const employee = await User.findByPk(employeeId);
-
-      if (!employee || employee.supervisorId !== id) {
-        return res
-          .status(403)
-          .json({ message: "Not authorized to view this employee's tasks" });
-      }
-    }
-
-    // Get tasks
-    const tasks = await Task.findAll({
-      where: { userId: employeeId },
-      order: [["dueDate", "ASC"]],
-    });
-
-    res.json(tasks);
-  } catch (error) {
-    console.error("Error fetching employee tasks:", error);
-    res.status(500).json({ message: "Server error" });
-  }
+module.exports = {
+  register,
+  login,
+  getMe,
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  getTeamMembers,
+  updatePassword,
 };

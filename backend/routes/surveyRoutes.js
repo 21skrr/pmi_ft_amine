@@ -1,13 +1,12 @@
 const express = require("express");
 const { check } = require("express-validator");
 const surveyController = require("../controllers/surveyController");
-const auth = require("../middleware/auth");
-const roleCheck = require("../middleware/roleCheck");
+const { auth, checkRole } = require("../middleware/auth");
 
 const router = express.Router();
 
 // GET /api/surveys
-router.get("/", auth, roleCheck(["hr"]), surveyController.getAllSurveys);
+router.get("/", auth, checkRole("hr"), surveyController.getAllSurveys);
 
 // GET /api/surveys/user
 router.get("/user", auth, surveyController.getUserSurveys);
@@ -20,7 +19,7 @@ router.post(
   "/",
   [
     auth,
-    roleCheck(["hr"]),
+    checkRole("hr"),
     check("title", "Title is required").not().isEmpty(),
     check(
       "type",
@@ -39,7 +38,7 @@ router.put(
   "/:id",
   [
     auth,
-    roleCheck(["hr"]),
+    checkRole("hr"),
     check("title", "Title is required").optional(),
     check("status", "Status must be draft, active, or completed")
       .optional()
@@ -49,14 +48,14 @@ router.put(
 );
 
 // DELETE /api/surveys/:id
-router.delete("/:id", auth, roleCheck(["hr"]), surveyController.deleteSurvey);
+router.delete("/:id", auth, checkRole("hr"), surveyController.deleteSurvey);
 
 // POST /api/surveys/:id/questions
 router.post(
   "/:id/questions",
   [
     auth,
-    roleCheck(["hr"]),
+    checkRole("hr"),
     check("text", "Question text is required").not().isEmpty(),
     check("type", "Type must be multiple_choice, rating, or text").isIn([
       "multiple_choice",
@@ -72,7 +71,7 @@ router.put(
   "/questions/:id",
   [
     auth,
-    roleCheck(["hr"]),
+    checkRole("hr"),
     check("text", "Question text is required").optional(),
     check("type", "Type must be multiple_choice, rating, or text")
       .optional()
@@ -85,7 +84,7 @@ router.put(
 router.delete(
   "/questions/:id",
   auth,
-  roleCheck(["hr"]),
+  checkRole("hr"),
   surveyController.deleteQuestion
 );
 
@@ -100,7 +99,7 @@ router.post(
 router.get(
   "/:id/responses",
   auth,
-  roleCheck(["hr"]),
+  checkRole("hr"),
   surveyController.getSurveyResponses
 );
 

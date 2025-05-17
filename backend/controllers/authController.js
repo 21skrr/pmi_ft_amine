@@ -37,7 +37,11 @@ const register = async (req, res) => {
     const user = await User.create({
       name,
       email,
+<<<<<<< HEAD
       passwordHash: hashedPassword,
+=======
+      password: hashedPassword,
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
       role,
       department,
       startDate,
@@ -49,7 +53,11 @@ const register = async (req, res) => {
 
     // Remove password from response
     const userResponse = user.toJSON();
+<<<<<<< HEAD
     delete userResponse.passwordHash;
+=======
+    delete userResponse.password;
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
     res.status(201).json({
       token,
@@ -77,7 +85,11 @@ const login = async (req, res) => {
     }
 
     // Check password
+<<<<<<< HEAD
     const isMatch = await bcrypt.compare(password, user.passwordHash);
+=======
+    const isMatch = await bcrypt.compare(password, user.password);
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -87,7 +99,11 @@ const login = async (req, res) => {
 
     // Remove password from response
     const userResponse = user.toJSON();
+<<<<<<< HEAD
     delete userResponse.passwordHash;
+=======
+    delete userResponse.password;
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
     res.json({
       token,
@@ -314,7 +330,11 @@ const updatePassword = async (req, res) => {
     }
 
     // Verify current password
+<<<<<<< HEAD
     const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+=======
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
     if (!isMatch) {
       return res.status(400).json({ message: "Current password is incorrect" });
     }
@@ -324,7 +344,11 @@ const updatePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password
+<<<<<<< HEAD
     await user.update({ passwordHash: hashedPassword });
+=======
+    await user.update({ password: hashedPassword });
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {

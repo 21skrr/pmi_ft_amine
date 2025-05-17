@@ -38,7 +38,11 @@ const seedData = async () => {
       name: "Maria HR",
       email: "hr@pmi.com",
       passwordHash: hrPassword,
+<<<<<<< HEAD
       role: "admin",
+=======
+      role: "hr",
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
       department: "Human Resources",
       startDate: "2022-01-01",
     });
@@ -210,7 +214,11 @@ const seedData = async () => {
             i === 0 ? new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) : null,
           priority: ["high", "medium", "low"][i],
           onboardingStage: stages[Math.min(i, 4)],
+<<<<<<< HEAD
           controlledBy: ["hr", "supervisor", "supervisor"][i],
+=======
+          controlledBy: ["hr", "supervisor", "manager"][i],
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
         });
       }
     }
@@ -227,7 +235,11 @@ const seedData = async () => {
           Date.now() + 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000
         ),
         location: "Main Conference Room",
+<<<<<<< HEAD
         type: "meeting",
+=======
+        type: "orientation",
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
         createdBy: hr.id,
       },
       {

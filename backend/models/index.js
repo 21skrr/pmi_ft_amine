@@ -5,7 +5,10 @@ const Task = require("./Task");
 const Event = require("./Event");
 const Course = require("./Course");
 const Survey = require("./Survey");
+<<<<<<< HEAD
 const EventParticipant = require("./EventParticipant");
+=======
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
 // User associations
 User.hasOne(OnboardingProgress);
@@ -34,7 +37,10 @@ module.exports = {
   OnboardingProgress,
   Task,
   Event,
+<<<<<<< HEAD
   EventParticipant,
+=======
+>>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
   Course,
   Survey,
 };

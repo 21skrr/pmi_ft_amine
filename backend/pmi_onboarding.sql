@@ -1,0 +1,1 @@
+SELECT * FROM pmi_onboarding.users;

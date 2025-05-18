@@ -11,8 +11,8 @@ const EventParticipant = require("./EventParticipant");
 User.hasOne(OnboardingProgress);
 OnboardingProgress.belongsTo(User);
 
-User.hasMany(Task);
-Task.belongsTo(User);
+User.hasMany(Task, { foreignKey: "userId" });
+Task.belongsTo(User, { foreignKey: "userId" });
 
 User.hasMany(Event, { as: "createdEvents", foreignKey: "createdBy" });
 Event.belongsTo(User, { as: "creator", foreignKey: "createdBy" });

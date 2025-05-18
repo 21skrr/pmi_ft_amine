@@ -3,12 +3,17 @@ import axios from "axios";
 
 // Create axios instance with base URL
 const API_BASE_URL =
+<<<<<<< HEAD
   process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+=======
+  process.env.REACT_APP_API_URL || "http://localhost:30001/api";
+>>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 
@@ -31,6 +36,7 @@ api.interceptors.response.use(
   (response) => {
     return response;
   },
+<<<<<<< HEAD
   (error) => {
     if (error.response && error.response.status === 401) {
       // Unauthorized - token expired or invalid
@@ -45,6 +51,26 @@ api.interceptors.response.use(
       const newConfig = { ...error.config };
       newConfig.url = newConfig.url.replace("5000", "5001");
       return api(newConfig);
+=======
+  async (error) => {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error("Error response:", error.response.data);
+
+      if (error.response.status === 401) {
+        // Unauthorized - token expired or invalid
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error("Error request:", error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error("Error message:", error.message);
+>>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
     }
     return Promise.reject(error);
   }

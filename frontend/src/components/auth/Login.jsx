@@ -17,10 +17,15 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log("Attempting login with:", { email, password });
       await login(email, password);
+      console.log("Login successful");
       navigate("/dashboard");
     } catch (err) {
-      setError("Failed to log in. Please check your credentials.");
+      console.error("Login error:", err);
+      setError(
+        err.message || "Failed to log in. Please check your credentials."
+      );
     } finally {
       setLoading(false);
     }

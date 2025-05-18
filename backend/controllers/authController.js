@@ -70,29 +70,42 @@ const login = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { email, password } = req.body;
+    console.log("Login attempt for email:", email);
 
     // Find user
     const user = await User.findOne({ where: { email } });
     if (!user) {
+      console.log("User not found for email:", email);
       return res.status(400).json({ message: "Invalid credentials" });
     }
+    console.log("User found:", user.email, user.role);
 
+<<<<<<< HEAD
     // Hash the provided password with SHA256
     const hashedPassword = hashPasswordSHA256(password);
     
     // Compare the hashed password with the stored hash
     const isMatch = (hashedPassword === user.passwordHash);
     
+=======
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    console.log("Password match:", isMatch);
+
+>>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
     if (!isMatch) {
+      console.log("Password mismatch for user:", email);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     // Create JWT token
     const token = generateToken(user);
+    console.log("Token generated successfully");
 
     // Remove password from response
     const userResponse = user.toJSON();
@@ -191,8 +204,14 @@ const createUser = async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
     }
 
+<<<<<<< HEAD
     // Hash password using SHA256
     const hashedPassword = hashPasswordSHA256(password);
+=======
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+>>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
 
     // Create new user
     const user = await User.create({
@@ -325,10 +344,15 @@ const updatePassword = async (req, res) => {
         .json({ message: "Not authorized to update this user's password" });
     }
 
+<<<<<<< HEAD
     // Hash the current password with SHA256 and compare
     const hashedCurrentPassword = hashPasswordSHA256(currentPassword);
     const isMatch = (hashedCurrentPassword === user.passwordHash);
     
+=======
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+>>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
     if (!isMatch) {
       return res.status(400).json({ message: "Current password is incorrect" });
     }
@@ -337,7 +361,11 @@ const updatePassword = async (req, res) => {
     const hashedNewPassword = hashPasswordSHA256(newPassword);
 
     // Update password
+<<<<<<< HEAD
     await user.update({ passwordHash: hashedNewPassword });
+=======
+    await user.update({ passwordHash: hashedPassword });
+>>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {

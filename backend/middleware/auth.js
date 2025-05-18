@@ -3,27 +3,39 @@ const { User } = require("../models");
 
 const auth = async (req, res, next) => {
   try {
-    const token = req.header("Authorization")?.replace("Bearer ", "");
-
-    if (!token) {
-      throw new Error();
+    // Get token from header
+    const authHeader = req.header("Authorization");
+    if (!authHeader) {
+      return res
+        .status(401)
+        .json({ message: "No token, authorization denied" });
     }
 
+    // Verify token format
+    const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "No token, authorization denied" });
+    }
+
+    // Verify token
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "your-secret-key"
     );
-    const user = await User.findByPk(decoded.id);
 
+    // Get user from database
+    const user = await User.findByPk(decoded.id);
     if (!user) {
-      throw new Error();
+      return res.status(401).json({ message: "Token is not valid" });
     }
 
-    req.token = token;
     req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ error: "Please authenticate." });
+    console.error("Auth middleware error:", error);
+    res.status(401).json({ message: "Token is not valid" });
   }
 };
 

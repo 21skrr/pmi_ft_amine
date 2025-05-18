@@ -6,11 +6,7 @@ const bcrypt = require("bcryptjs");
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
-<<<<<<< HEAD
       attributes: { exclude: ["passwordHash"] },
-=======
-      attributes: { exclude: ["password"] },
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
       order: [["createdAt", "DESC"]],
     });
     res.json(users);
@@ -24,11 +20,7 @@ const getAllUsers = async (req, res) => {
 const getUserById = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id, {
-<<<<<<< HEAD
       attributes: { exclude: ["passwordHash"] },
-=======
-      attributes: { exclude: ["password"] },
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
     });
 
     if (!user) {
@@ -74,11 +66,7 @@ const createUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
-<<<<<<< HEAD
       passwordHash: hashedPassword,
-=======
-      password: hashedPassword,
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
       role,
       department,
       startDate,
@@ -87,11 +75,7 @@ const createUser = async (req, res) => {
 
     // Remove password from response
     const userResponse = user.toJSON();
-<<<<<<< HEAD
     delete userResponse.passwordHash;
-=======
-    delete userResponse.password;
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
     res.status(201).json(userResponse);
   } catch (error) {
@@ -136,22 +120,14 @@ const updateUser = async (req, res) => {
     // Only update password if provided
     if (password) {
       const salt = await bcrypt.genSalt(10);
-<<<<<<< HEAD
       updateData.passwordHash = await bcrypt.hash(password, salt);
-=======
-      updateData.password = await bcrypt.hash(password, salt);
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
     }
 
     await user.update(updateData);
 
     // Remove password from response
     const userResponse = user.toJSON();
-<<<<<<< HEAD
     delete userResponse.passwordHash;
-=======
-    delete userResponse.password;
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
     res.json(userResponse);
   } catch (error) {
@@ -181,11 +157,7 @@ const getTeamMembers = async (req, res) => {
   try {
     const users = await User.findAll({
       where: { supervisorId: req.user.id },
-<<<<<<< HEAD
       attributes: { exclude: ["passwordHash"] },
-=======
-      attributes: { exclude: ["password"] },
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
       order: [["name", "ASC"]],
     });
     res.json(users);

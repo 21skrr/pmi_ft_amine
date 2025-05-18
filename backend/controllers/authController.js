@@ -37,11 +37,7 @@ const register = async (req, res) => {
     const user = await User.create({
       name,
       email,
-<<<<<<< HEAD
       passwordHash: hashedPassword,
-=======
-      password: hashedPassword,
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
       role,
       department,
       startDate,
@@ -53,11 +49,7 @@ const register = async (req, res) => {
 
     // Remove password from response
     const userResponse = user.toJSON();
-<<<<<<< HEAD
     delete userResponse.passwordHash;
-=======
-    delete userResponse.password;
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
     res.status(201).json({
       token,
@@ -73,37 +65,37 @@ const login = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log("Validation errors:", errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { email, password } = req.body;
+    console.log("Login attempt for email:", email);
 
     // Find user
     const user = await User.findOne({ where: { email } });
     if (!user) {
+      console.log("User not found for email:", email);
       return res.status(400).json({ message: "Invalid credentials" });
     }
+    console.log("User found:", user.email, user.role);
 
     // Check password
-<<<<<<< HEAD
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-=======
-    const isMatch = await bcrypt.compare(password, user.password);
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
+    console.log("Password match:", isMatch);
+
     if (!isMatch) {
+      console.log("Password mismatch for user:", email);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     // Create JWT token
     const token = generateToken(user);
+    console.log("Token generated successfully");
 
     // Remove password from response
     const userResponse = user.toJSON();
-<<<<<<< HEAD
     delete userResponse.passwordHash;
-=======
-    delete userResponse.password;
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
     res.json({
       token,
@@ -118,7 +110,7 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["passwordHash"] },
     });
 
     if (!user) {
@@ -136,7 +128,7 @@ const getMe = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["passwordHash"] },
       include: [
         {
           model: OnboardingProgress,
@@ -157,7 +149,7 @@ const getUserById = async (req, res) => {
     const { id } = req.params;
 
     const user = await User.findByPk(id, {
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["passwordHash"] },
       include: [
         {
           model: OnboardingProgress,
@@ -198,11 +190,15 @@ const createUser = async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
     }
 
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     // Create new user
     const user = await User.create({
       name,
       email,
-      password: password,
+      passwordHash: hashedPassword,
       role,
       department,
       startDate,
@@ -291,7 +287,7 @@ const getTeamMembers = async (req, res) => {
 
     const users = await User.findAll({
       where: { department },
-      attributes: { exclude: ["password"] },
+      attributes: { exclude: ["passwordHash"] },
       include: [
         {
           model: OnboardingProgress,
@@ -330,11 +326,7 @@ const updatePassword = async (req, res) => {
     }
 
     // Verify current password
-<<<<<<< HEAD
     const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
-=======
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
     if (!isMatch) {
       return res.status(400).json({ message: "Current password is incorrect" });
     }
@@ -344,11 +336,7 @@ const updatePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password
-<<<<<<< HEAD
     await user.update({ passwordHash: hashedPassword });
-=======
-    await user.update({ password: hashedPassword });
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {

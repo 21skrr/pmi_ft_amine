@@ -4,8 +4,7 @@ import api from "./api";
 // Get current user profile
 export const getCurrentUser = async () => {
   try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const response = await api.get(`/users/${user.id}`);
+    const response = await api.get(`/auth/me`);
     return response.data;
   } catch (error) {
     throw error.response?.data || error;

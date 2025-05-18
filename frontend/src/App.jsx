@@ -11,14 +11,14 @@ import RolePermissions from "./components/roles/RolePermissions";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const App = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <Routes>
       {/* Public routes */}
       <Route
         path="/login"
-        element={!user ? <Login /> : <Navigate to="/dashboard" />}
+        element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />}
       />
 
       {/* Protected routes */}

@@ -14,7 +14,6 @@ const startServer = async () => {
     await sequelize.sync({ alter: false, force: false });
     console.log("Database synchronized successfully.");
 
-<<<<<<< HEAD
     // Try to start server on PORT, if that fails try PORT + 1
     const server = app
       .listen(PORT, () => {
@@ -30,11 +29,6 @@ const startServer = async () => {
           console.error("Server error:", err);
         }
       });
-=======
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
   } catch (error) {
     console.error("Unable to connect to the database:", error);
   }

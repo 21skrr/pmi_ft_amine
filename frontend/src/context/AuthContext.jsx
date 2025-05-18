@@ -16,19 +16,34 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Check if user is logged in on initial load
   useEffect(() => {
-    // Check if user is logged in
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const checkAuth = async () => {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
+      
+      if (token && storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+          setIsAuthenticated(true);
+          // We'll fetch the latest user data in the next useEffect
+        } catch (error) {
+          console.error("Error parsing stored user:", error);
+          logout(); // Clear invalid data
+        }
+      }
+      setLoading(false);
+    };
+    
+    checkAuth();
   }, []);
 
-  // Fetch current user data with latest onboarding progress
+  // Fetch current user data with latest onboarding progress when authenticated
   useEffect(() => {
-    if (user) {
+    if (user && isAuthenticated) {
       getCurrentUser()
         .then((updatedUser) => {
           setUser(updatedUser);
@@ -36,9 +51,13 @@ export const AuthProvider = ({ children }) => {
         })
         .catch((error) => {
           console.error("Error fetching current user:", error);
+          // If we can't get the user data, the token might be invalid
+          if (error.response && error.response.status === 401) {
+            logout();
+          }
         });
     }
-  }, [user?.id]);
+  }, [isAuthenticated]);
 
   // Login
   const login = async (email, password) => {
@@ -50,6 +69,7 @@ export const AuthProvider = ({ children }) => {
       const { user, token } = response;
 
       setUser(user);
+      setIsAuthenticated(true);
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("token", token);
 
@@ -66,6 +86,7 @@ export const AuthProvider = ({ children }) => {
   // Logout
   const logout = () => {
     setUser(null);
+    setIsAuthenticated(false);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
@@ -80,6 +101,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
+    isAuthenticated,
     login,
     logout,
     updateUserContext,

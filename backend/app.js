@@ -27,6 +27,11 @@ app.use(express.urlencoded({ extended: true }));
 // Static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Simple test route
+app.get("/api/test", (req, res) => {
+  res.json({ message: "Test route is working!" });
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);

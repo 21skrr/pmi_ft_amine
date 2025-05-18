@@ -3,11 +3,7 @@ import axios from "axios";
 
 // Create axios instance with base URL
 const API_BASE_URL =
-<<<<<<< HEAD
   process.env.REACT_APP_API_URL || "http://localhost:5000/api";
-=======
-  process.env.REACT_APP_API_URL || "http://localhost:3000/api";
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -21,7 +17,7 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      config.headers["x-auth-token"] = token;
+      config.headers["Authorization"] = `Bearer ${token}`;
     }
     return config;
   },
@@ -35,17 +31,12 @@ api.interceptors.response.use(
   (response) => {
     return response;
   },
-<<<<<<< HEAD
-  async (error) => {
-=======
   (error) => {
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
     if (error.response && error.response.status === 401) {
       // Unauthorized - token expired or invalid
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";
-<<<<<<< HEAD
     } else if (
       error.code === "ERR_NETWORK" &&
       error.config.url.includes("5000")
@@ -54,11 +45,20 @@ api.interceptors.response.use(
       const newConfig = { ...error.config };
       newConfig.url = newConfig.url.replace("5000", "5001");
       return api(newConfig);
-=======
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef
     }
     return Promise.reject(error);
   }
 );
+
+// Test function to call the test endpoint
+export const testApi = async () => {
+  try {
+    const response = await api.get('/test');
+    return response.data;
+  } catch (error) {
+    console.error('Error testing API:', error);
+    throw error;
+  }
+};
 
 export default api;

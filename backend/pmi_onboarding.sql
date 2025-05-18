@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-SELECT * FROM pmi_onboarding.users;
-=======
 -- Create database
 CREATE DATABASE IF NOT EXISTS pmi_onboarding;
 USE pmi_onboarding;
@@ -207,11 +204,11 @@ CREATE TABLE IF NOT EXISTS Surveys (
 CREATE TABLE IF NOT EXISTS SurveyQuestions (
     id CHAR(36) PRIMARY KEY,
     surveyId CHAR(36) NOT NULL,
-    question TEXT NOT NULL,
-	type ENUM('text', 'multiple_choice', 'rating') NOT NULL,
-    required BOOLEAN DEFAULT FALSE,
+    questionText TEXT NOT NULL,
+    questionType ENUM('text', 'rating', 'multiple_choice', 'checkbox') NOT NULL,
     options JSON,
-    questionOrder INT NOT NULL,
+    isRequired BOOLEAN DEFAULT TRUE,
+    orderIndex INT NOT NULL,
     createdAt DATETIME NOT NULL,
     updatedAt DATETIME NOT NULL,
     FOREIGN KEY (surveyId) REFERENCES Surveys(id)
@@ -222,7 +219,7 @@ CREATE TABLE IF NOT EXISTS SurveyResponses (
     id CHAR(36) PRIMARY KEY,
     surveyId CHAR(36) NOT NULL,
     userId CHAR(36) NOT NULL,
-    submittedAt DATETIME NOT NULL,
+    completedAt DATETIME,
     createdAt DATETIME NOT NULL,
     updatedAt DATETIME NOT NULL,
     FOREIGN KEY (surveyId) REFERENCES Surveys(id),
@@ -244,18 +241,14 @@ CREATE TABLE IF NOT EXISTS SurveyQuestionResponses (
 -- CoachingSessions table
 CREATE TABLE IF NOT EXISTS CoachingSessions (
     id CHAR(36) PRIMARY KEY,
-    supervisorId CHAR(36) NOT NULL,
     employeeId CHAR(36) NOT NULL,
+    coachId CHAR(36) NOT NULL,
     scheduledDate DATETIME NOT NULL,
-    actualDate DATETIME,
-    status ENUM('scheduled', 'completed', 'cancelled', 'rescheduled') DEFAULT 'scheduled',
-    goal TEXT,
+    duration INT NOT NULL,
+    status ENUM('scheduled', 'completed', 'cancelled') DEFAULT 'scheduled',
     notes TEXT,
-    outcome TEXT,
-    topicTags JSON,
     createdAt DATETIME NOT NULL,
     updatedAt DATETIME NOT NULL,
-    FOREIGN KEY (supervisorId) REFERENCES Users(id),
-    FOREIGN KEY (employeeId) REFERENCES Users(id)
+    FOREIGN KEY (employeeId) REFERENCES Users(id),
+    FOREIGN KEY (coachId) REFERENCES Users(id)
 );
->>>>>>> e45d5af2f3b656e78bbe5d47b3b66f4e245b16ef

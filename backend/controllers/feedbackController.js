@@ -1,5 +1,6 @@
 const { Feedback, User } = require("../models");
 const { validationResult } = require("express-validator");
+const { Parser } = require("json2csv");
 
 // Get sent feedback
 const getSentFeedback = async (req, res) => {
@@ -99,10 +100,26 @@ const deleteFeedback = async (req, res) => {
   }
 };
 
+// Export feedback as CSV
+const exportFeedbackCSV = async (req, res) => {
+  try {
+    const feedbacks = await Feedback.findAll();
+    const fields = ["employeeId", "type", "answers", "createdAt"];
+    const parser = new Parser({ fields });
+    const csv = parser.parse(feedbacks.map((f) => f.toJSON()));
+    res.header("Content-Type", "text/csv");
+    res.attachment("feedback_report.csv");
+    return res.send(csv);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to export feedback" });
+  }
+};
+
 module.exports = {
   getSentFeedback,
   getReceivedFeedback,
   getDepartmentFeedback,
   createFeedback,
   deleteFeedback,
+  exportFeedbackCSV,
 };

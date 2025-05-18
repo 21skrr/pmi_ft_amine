@@ -1,6 +1,6 @@
 const express = require("express");
 const notificationController = require("../controllers/notificationController");
-const { auth } = require("../middleware/auth");
+const { auth, isRH } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -15,5 +15,8 @@ router.put("/read-all", auth, notificationController.markAllAsRead);
 
 // DELETE /api/notifications/:id
 router.delete("/:id", auth, notificationController.deleteNotification);
+
+// GET /api/notifications/all (admin/RH only)
+router.get("/all", auth, isRH, notificationController.getAllNotifications);
 
 module.exports = router;

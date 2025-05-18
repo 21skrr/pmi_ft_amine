@@ -56,4 +56,9 @@ router.get(
   userController.getTeamMembers
 );
 
+// Debug endpoint: Get current user info
+router.get("/me", auth, (req, res) => {
+  res.json({ id: req.user.id, email: req.user.email, role: req.user.role });
+});
+
 module.exports = router;

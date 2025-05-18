@@ -1,7 +1,7 @@
 const express = require("express");
 const { check } = require("express-validator");
 const onboardingController = require("../controllers/onboardingController");
-const { auth } = require("../middleware/auth");
+const { auth, isRH } = require("../middleware/auth");
 const roleCheck = require("../middleware/roleCheck");
 
 const router = express.Router();
@@ -24,5 +24,8 @@ router.put(
   ],
   onboardingController.updateOnboardingProgress
 );
+
+// GET /api/onboarding/export/csv (HR only)
+router.get("/export/csv", auth, isRH, onboardingController.exportOnboardingCSV);
 
 module.exports = router;

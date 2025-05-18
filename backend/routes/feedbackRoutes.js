@@ -1,7 +1,7 @@
 const express = require("express");
 const { check } = require("express-validator");
 const feedbackController = require("../controllers/feedbackController");
-const { auth, checkRole } = require("../middleware/auth");
+const { auth, checkRole, isRH } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -18,6 +18,9 @@ router.get(
   checkRole("hr"),
   feedbackController.getDepartmentFeedback
 );
+
+// GET /api/feedback/export/csv (HR only)
+router.get("/export/csv", auth, isRH, feedbackController.exportFeedbackCSV);
 
 // POST /api/feedback
 router.post(

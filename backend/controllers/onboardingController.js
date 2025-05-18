@@ -1,6 +1,7 @@
 const { OnboardingProgress, User, Task } = require("../models");
 const { validationResult } = require("express-validator");
 const { Op } = require("sequelize");
+const { Parser } = require("json2csv");
 
 // Get onboarding progress for a user
 const getOnboardingProgress = async (req, res) => {
@@ -107,7 +108,23 @@ const updateOnboardingProgress = async (req, res) => {
   }
 };
 
+// Export onboarding progress as CSV
+const exportOnboardingCSV = async (req, res) => {
+  try {
+    const progresses = await OnboardingProgress.findAll();
+    const fields = ["userId", "stage", "progress", "createdAt", "updatedAt"];
+    const parser = new Parser({ fields });
+    const csv = parser.parse(progresses.map((p) => p.toJSON()));
+    res.header("Content-Type", "text/csv");
+    res.attachment("onboarding_report.csv");
+    return res.send(csv);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to export onboarding progress" });
+  }
+};
+
 module.exports = {
   getOnboardingProgress,
   updateOnboardingProgress,
+  exportOnboardingCSV,
 };

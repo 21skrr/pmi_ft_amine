@@ -3,11 +3,11 @@ const jwt = require("jsonwebtoken");
 const { User, OnboardingProgress } = require("../models");
 const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
-const crypto = require('crypto'); // Add crypto module for SHA256
+const crypto = require("crypto"); // Add crypto module for SHA256
 
 // Function to hash password with SHA256
 const hashPasswordSHA256 = (password) => {
-  return crypto.createHash('sha256').update(password).digest('hex');
+  return crypto.createHash("sha256").update(password).digest("hex");
 };
 
 const generateToken = (user) => {
@@ -85,19 +85,10 @@ const login = async (req, res) => {
     }
     console.log("User found:", user.email, user.role);
 
-<<<<<<< HEAD
-    // Hash the provided password with SHA256
-    const hashedPassword = hashPasswordSHA256(password);
-    
-    // Compare the hashed password with the stored hash
-    const isMatch = (hashedPassword === user.passwordHash);
-    
-=======
     // Check password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     console.log("Password match:", isMatch);
 
->>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
     if (!isMatch) {
       console.log("Password mismatch for user:", email);
       return res.status(400).json({ message: "Invalid credentials" });
@@ -204,14 +195,9 @@ const createUser = async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
     }
 
-<<<<<<< HEAD
-    // Hash password using SHA256
-    const hashedPassword = hashPasswordSHA256(password);
-=======
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
->>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
 
     // Create new user
     const user = await User.create({
@@ -344,28 +330,18 @@ const updatePassword = async (req, res) => {
         .json({ message: "Not authorized to update this user's password" });
     }
 
-<<<<<<< HEAD
-    // Hash the current password with SHA256 and compare
-    const hashedCurrentPassword = hashPasswordSHA256(currentPassword);
-    const isMatch = (hashedCurrentPassword === user.passwordHash);
-    
-=======
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
->>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
     if (!isMatch) {
       return res.status(400).json({ message: "Current password is incorrect" });
     }
 
-    // Hash new password with SHA256
-    const hashedNewPassword = hashPasswordSHA256(newPassword);
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password
-<<<<<<< HEAD
-    await user.update({ passwordHash: hashedNewPassword });
-=======
     await user.update({ passwordHash: hashedPassword });
->>>>>>> 618f5714edc2eba371cb83fa2a359398aa510e8f
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {

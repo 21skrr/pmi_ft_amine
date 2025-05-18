@@ -11,7 +11,7 @@ const Dashboard = () => {
 
   // Render different dashboards based on user role
   if (user.role === "employee") {
-    return <EmployeeDashboard />;
+    return <EmployeeDashboard employee={user} />;
   } else if (user.role === "supervisor") {
     return <SupervisorDashboard />;
   } else if (user.role === "manager") {
@@ -21,7 +21,7 @@ const Dashboard = () => {
   }
 
   // Fallback to employee dashboard if role is not recognized
-  return <EmployeeDashboard />;
+  return <EmployeeDashboard employee={user} />;
 };
 
 export default Dashboard;

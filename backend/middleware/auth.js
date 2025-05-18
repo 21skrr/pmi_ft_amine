@@ -48,7 +48,15 @@ const checkRole = (...roles) => {
   };
 };
 
+const isRH = (req, res, next) => {
+  if (req.user.role !== "rh") {
+    return res.status(403).json({ error: "Access denied. RH only." });
+  }
+  next();
+};
+
 module.exports = {
   auth,
   checkRole,
+  isRH,
 };

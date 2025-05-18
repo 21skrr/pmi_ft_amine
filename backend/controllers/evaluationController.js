@@ -1,5 +1,6 @@
 const { Evaluation, User } = require("../models");
 const { validationResult } = require("express-validator");
+const { Parser } = require("json2csv");
 
 // Get all evaluations
 const getAllEvaluations = async (req, res) => {
@@ -265,6 +266,27 @@ const submitEvaluation = async (req, res) => {
   }
 };
 
+// Export evaluations as CSV
+const exportEvaluationCSV = async (req, res) => {
+  try {
+    const evaluations = await Evaluation.findAll();
+    const fields = [
+      "employeeId",
+      "evaluatorId",
+      "criteria",
+      "comments",
+      "createdAt",
+    ];
+    const parser = new Parser({ fields });
+    const csv = parser.parse(evaluations.map((e) => e.toJSON()));
+    res.header("Content-Type", "text/csv");
+    res.attachment("evaluation_report.csv");
+    return res.send(csv);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to export evaluations" });
+  }
+};
+
 module.exports = {
   getAllEvaluations,
   getEvaluationById,
@@ -278,4 +300,5 @@ module.exports = {
   getReviewEvaluations,
   reviewEvaluation,
   submitEvaluation,
+  exportEvaluationCSV,
 };

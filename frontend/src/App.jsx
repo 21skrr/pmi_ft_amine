@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Layout from "./components/layout/Layout";
 import Login from "./components/auth/Login";
-import Dashboard from "./components/dashboard/Dashboard";
+import Dashboard from "./pages/Dashboard";
 import SurveyList from "./components/surveys/SurveyList";
 import SurveyForm from "./components/surveys/SurveyForm";
 import SurveyResponse from "./components/surveys/SurveyResponse";

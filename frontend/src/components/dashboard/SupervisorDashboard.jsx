@@ -1,6 +1,6 @@
 // frontend/src/components/dashboard/SupervisorDashboard.jsx
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getTeamMembers } from "../../api/userApi";
 import { getUserTasks } from "../../api/taskApi";
 import { getSupervisorCoachingSessions } from "../../api/coachingApi";
@@ -25,6 +25,7 @@ import TaskList from "../tasks/TaskList";
 
 const SupervisorDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [teamMembers, setTeamMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [coachingSessions, setCoachingSessions] = useState([]);

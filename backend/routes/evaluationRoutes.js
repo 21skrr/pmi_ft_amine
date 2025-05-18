@@ -1,7 +1,7 @@
 const express = require("express");
 const { check } = require("express-validator");
 const evaluationController = require("../controllers/evaluationController");
-const { auth, checkRole } = require("../middleware/auth");
+const { auth, checkRole, isRH } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -90,5 +90,8 @@ router.post(
   ],
   evaluationController.submitEvaluation
 );
+
+// GET /api/evaluations/export/csv (HR only)
+router.get("/export/csv", auth, isRH, evaluationController.exportEvaluationCSV);
 
 module.exports = router;

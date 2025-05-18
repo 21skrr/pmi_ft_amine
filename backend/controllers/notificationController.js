@@ -1,4 +1,5 @@
 const { Notification } = require("../models");
+const { Op } = require("sequelize");
 
 // Get user's notifications
 const getUserNotifications = async (req, res) => {
@@ -77,9 +78,31 @@ const deleteNotification = async (req, res) => {
   }
 };
 
+// Get all notifications (admin/RH only)
+const getAllNotifications = async (req, res) => {
+  try {
+    const { type, userId, from, to } = req.query;
+    const where = {};
+    if (type) where.type = type;
+    if (userId) where.userId = userId;
+    if (from || to) where.createdAt = {};
+    if (from) where.createdAt[Op.gte] = new Date(from);
+    if (to) where.createdAt[Op.lte] = new Date(to);
+    const notifications = await Notification.findAll({
+      where,
+      order: [["createdAt", "DESC"]],
+    });
+    res.json(notifications);
+  } catch (error) {
+    console.error("Error fetching all notifications:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getUserNotifications,
   markAsRead,
   markAllAsRead,
   deleteNotification,
+  getAllNotifications,
 };

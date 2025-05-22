@@ -18,7 +18,10 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
+      console.log("JWT Token being used:", token);
       config.headers["Authorization"] = `Bearer ${token}`;
+    } else {
+      console.log("No JWT token found in localStorage");
     }
     return config;
   },

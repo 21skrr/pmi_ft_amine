@@ -18,7 +18,7 @@ const sessionValidation = [
 router.get(
   "/supervisor",
   auth,
-  checkRole("supervisor"),
+  checkRole("supervisor", "hr"),
   coachingController.getSupervisorSessions
 );
 

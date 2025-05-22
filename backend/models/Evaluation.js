@@ -5,12 +5,12 @@ const Evaluation = sequelize.define(
   "Evaluation",
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     employeeId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
       references: {
         model: "Users",
@@ -18,7 +18,7 @@ const Evaluation = sequelize.define(
       },
     },
     supervisorId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
       references: {
         model: "Users",
@@ -58,7 +58,7 @@ const Evaluation = sequelize.define(
       allowNull: true,
     },
     reviewedBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: true,
       references: {
         model: "Users",

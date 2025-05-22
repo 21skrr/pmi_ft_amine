@@ -9,12 +9,12 @@ const router = express.Router();
 const taskValidation = [
   body("title").trim().notEmpty().withMessage("Title is required"),
   body("description").trim().notEmpty().withMessage("Description is required"),
-  body("dueDate").isDate().withMessage("Invalid due date"),
+  body("dueDate").isISO8601().withMessage("Invalid due date"),
   body("priority")
     .isIn(["low", "medium", "high"])
     .withMessage("Invalid priority level"),
   body("onboardingStage")
-    .isIn(["prepare", "welcome", "connect", "develop", "perform"])
+    .isIn(["prepare", "orient", "land", "integrate", "excel"])
     .withMessage("Invalid onboarding stage"),
   body("controlledBy")
     .isIn(["employee", "supervisor", "hr"])
@@ -32,6 +32,27 @@ router.get(
   auth,
   checkRole("supervisor", "manager", "hr"),
   taskController.getEmployeeTasks
+);
+
+// New Endpoints
+// Employee: Mark Task as Completed
+// PUT /api/onboarding/tasks/:taskId/progress
+router.put(
+  "/:taskId/progress",
+  auth,
+  body("isCompleted").isBoolean(),
+  body("notes").optional().isString(),
+  taskController.updateTaskProgress
+);
+
+// Supervisor: Add Notes to Tasks
+// PUT /api/onboarding/tasks/:taskId/notes
+router.put(
+  "/:taskId/notes",
+  auth,
+  checkRole("supervisor", "manager", "hr"),
+  body("supervisorNotes").isString().notEmpty(),
+  taskController.addSupervisorNotes
 );
 
 module.exports = router;

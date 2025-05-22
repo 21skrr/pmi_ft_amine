@@ -1,5 +1,6 @@
-const { Task, User } = require("../models");
+const { Task, User, UserTaskProgress } = require("../models");
 const { validationResult } = require("express-validator");
+const { v4: uuidv4 } = require("uuid");
 
 // Get user's tasks
 const getUserTasks = async (req, res) => {
@@ -170,6 +171,127 @@ const getEmployeeTasks = async (req, res) => {
   }
 };
 
+// NEW METHODS
+
+// Update task progress
+// PUT /api/onboarding/tasks/:taskId/progress
+const updateTaskProgress = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { taskId } = req.params;
+    const { isCompleted, notes } = req.body;
+    const userId = req.user.id;
+
+    // Check if task exists and is assigned to this user
+    const task = await Task.findOne({
+      where: {
+        id: taskId,
+        userId: userId,
+      },
+    });
+
+    if (!task) {
+      return res
+        .status(404)
+        .json({ message: "Task not found or not assigned to you" });
+    }
+
+    // Update the task
+    await task.update({
+      isCompleted: isCompleted,
+    });
+
+    // Check if UserTaskProgress exists for this task
+    let taskProgress = await UserTaskProgress.findOne({
+      where: {
+        OnboardingTaskId: taskId,
+        UserId: userId,
+      },
+    });
+
+    // Create or update task progress
+    if (!taskProgress) {
+      taskProgress = await UserTaskProgress.create({
+        id: uuidv4(),
+        UserId: userId,
+        OnboardingTaskId: taskId,
+        isCompleted: isCompleted,
+        notes: notes || null,
+        completedAt: isCompleted ? new Date() : null,
+      });
+    } else {
+      await taskProgress.update({
+        isCompleted: isCompleted,
+        notes: notes || taskProgress.notes,
+        completedAt: isCompleted ? new Date() : taskProgress.completedAt,
+      });
+    }
+
+    res.json({
+      task,
+      progress: taskProgress,
+    });
+  } catch (error) {
+    console.error("Error updating task progress:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Add supervisor notes to task
+// PUT /api/onboarding/tasks/:taskId/notes
+const addSupervisorNotes = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { taskId } = req.params;
+    const { supervisorNotes } = req.body;
+    const supervisorId = req.user.id;
+
+    // Find the task
+    const task = await Task.findByPk(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Verify supervisor relationship with the task owner
+    const taskOwner = await User.findByPk(task.userId);
+    if (!taskOwner) {
+      return res.status(404).json({ message: "Task owner not found" });
+    }
+
+    // Check if supervisor has permission
+    if (
+      req.user.role === "supervisor" &&
+      taskOwner.supervisorId !== supervisorId &&
+      req.user.role !== "hr" &&
+      req.user.role !== "manager"
+    ) {
+      return res.status(403).json({
+        message: "Not authorized to add notes to this employee's tasks",
+      });
+    }
+
+    // Update the task with supervisor notes
+    await task.update({
+      supervisorNotes: supervisorNotes,
+    });
+
+    res.json({
+      task,
+    });
+  } catch (error) {
+    console.error("Error adding supervisor notes:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   getUserTasks,
   getTaskById,
@@ -177,4 +299,6 @@ module.exports = {
   updateTask,
   deleteTask,
   getEmployeeTasks,
+  updateTaskProgress,
+  addSupervisorNotes,
 };

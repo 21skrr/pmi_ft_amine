@@ -1,6 +1,7 @@
 const { User, OnboardingProgress } = require("../models");
 const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 // Get all users (admin only)
 const getAllUsers = async (req, res) => {
@@ -28,7 +29,11 @@ const getUserById = async (req, res) => {
     }
 
     // Check if user has permission to view this user
-    if (req.user.role !== "admin" && req.user.id !== req.params.id) {
+    if (
+      req.user.role !== "admin" &&
+      req.user.role !== "hr" &&
+      req.user.id !== req.params.id
+    ) {
       return res
         .status(403)
         .json({ message: "Not authorized to view this user" });
@@ -58,9 +63,11 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Hash password using SHA256
+    const hashedPassword = crypto
+      .createHash("sha256")
+      .update(password)
+      .digest("hex");
 
     // Create user
     const user = await User.create({
@@ -98,7 +105,11 @@ const updateUser = async (req, res) => {
     }
 
     // Check if user has permission to update this user
-    if (req.user.role !== "admin" && req.user.id !== req.params.id) {
+    if (
+      req.user.role !== "admin" &&
+      req.user.role !== "hr" &&
+      req.user.id !== req.params.id
+    ) {
       return res
         .status(403)
         .json({ message: "Not authorized to update this user" });
@@ -119,8 +130,11 @@ const updateUser = async (req, res) => {
 
     // Only update password if provided
     if (password) {
-      const salt = await bcrypt.genSalt(10);
-      updateData.passwordHash = await bcrypt.hash(password, salt);
+      // Use SHA256 for password hashing to be consistent
+      updateData.passwordHash = crypto
+        .createHash("sha256")
+        .update(password)
+        .digest("hex");
     }
 
     await user.update(updateData);

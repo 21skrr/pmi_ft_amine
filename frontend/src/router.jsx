@@ -45,6 +45,9 @@ import ManagePrograms from "./pages/admin/ManagePrograms";
 import ActivityLogs from "./pages/admin/ActivityLogs";
 import OnboardingMetrics from "./pages/admin/OnboardingMetrics";
 
+// Import our new ProgramDetail component
+import ProgramDetail from "./pages/ProgramDetail";
+
 // Protected route component
 const ProtectedRoute = ({ element, requiredRoles = [] }) => {
   const { user, loading } = useAuth();
@@ -154,6 +157,20 @@ const Router = () => {
               element={
                 <Layout>
                   <WorkExperience />
+                </Layout>
+              }
+            />
+          }
+        />
+
+        {/* Add the new route for viewing program details by ID */}
+        <Route
+          path="/programs/:id"
+          element={
+            <ProtectedRoute
+              element={
+                <Layout>
+                  <ProgramDetail />
                 </Layout>
               }
             />

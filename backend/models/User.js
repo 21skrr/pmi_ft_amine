@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const User = sequelize.define(
   "User",
@@ -56,10 +57,6 @@ const User = sequelize.define(
         key: "id",
       },
     },
-    onboardingProgress: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-    },
   },
   {
     timestamps: true,
@@ -67,8 +64,12 @@ const User = sequelize.define(
 );
 
 // Instance method to check password
-User.prototype.checkPassword = async function (password) {
-  return bcrypt.compare(password, this.passwordHash);
+User.prototype.checkPassword = function (password) {
+  const hashedPassword = crypto
+    .createHash("sha256")
+    .update(password)
+    .digest("hex");
+  return hashedPassword === this.passwordHash;
 };
 
 module.exports = User;

@@ -14,7 +14,7 @@ const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET || "your-secret-key",
-    { expiresIn: "24h" }
+    { expiresIn: "2020h" }
   );
 };
 
@@ -85,9 +85,11 @@ const login = async (req, res) => {
     }
     console.log("User found:", user.email, user.role);
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    console.log("Password match:", isMatch);
+    // Check password using SHA256
+    const hashedPassword = hashPasswordSHA256(password);
+    const isMatch = hashedPassword === user.passwordHash;
+    console.log("Hashed password:");
+    console.log("Password matche:", isMatch);
 
     if (!isMatch) {
       console.log("Password mismatch for user:", email);
@@ -350,6 +352,20 @@ const updatePassword = async (req, res) => {
   }
 };
 
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Private
+const logout = async (req, res) => {
+  try {
+    // Clear the token from localStorage (handled by frontend)
+    // Backend just needs to return success
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ message: "Server error during logout" });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -361,4 +377,5 @@ module.exports = {
   deleteUser,
   getTeamMembers,
   updatePassword,
+  logout,
 };

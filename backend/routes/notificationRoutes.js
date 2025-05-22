@@ -7,6 +7,9 @@ const router = express.Router();
 // GET /api/notifications
 router.get("/", auth, notificationController.getUserNotifications);
 
+// POST /api/notifications - create a new notification
+router.post("/", auth, notificationController.createNotification);
+
 // PUT /api/notifications/:id/read
 router.put("/:id/read", auth, notificationController.markAsRead);
 

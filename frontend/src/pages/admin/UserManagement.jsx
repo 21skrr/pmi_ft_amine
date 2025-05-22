@@ -354,12 +354,19 @@ const UserManagement = () => {
                             <div
                               className="bg-blue-600 h-2.5 rounded-full"
                               style={{
-                                width: `${user.onboardingProgress || 0}%`,
+                                width: `${
+                                  user.OnboardingProgress
+                                    ? user.OnboardingProgress.progress
+                                    : 0
+                                }%`,
                               }}
                             ></div>
                           </div>
                           <span className="ml-2 text-sm text-gray-500">
-                            {user.onboardingProgress || 0}%
+                            {user.OnboardingProgress
+                              ? user.OnboardingProgress.progress
+                              : 0}
+                            %
                           </span>
                         </div>
                       ) : (

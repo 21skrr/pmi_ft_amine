@@ -241,13 +241,18 @@ const Profile = () => {
                         Onboarding Status
                       </dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {profileData.onboardingProgress === 100 ? (
+                        {profileData.OnboardingProgress &&
+                        profileData.OnboardingProgress.progress === 100 ? (
                           <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
                             Completed
                           </span>
                         ) : (
                           <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                            In Progress - {profileData.onboardingProgress || 0}%
+                            In Progress -{" "}
+                            {profileData.OnboardingProgress
+                              ? profileData.OnboardingProgress.progress
+                              : 0}
+                            %
                           </span>
                         )}
                       </dd>

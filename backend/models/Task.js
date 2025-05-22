@@ -41,6 +41,10 @@ const Task = sequelize.define(
       type: DataTypes.ENUM("hr", "supervisor", "employee"),
       defaultValue: "hr",
     },
+    supervisorNotes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,

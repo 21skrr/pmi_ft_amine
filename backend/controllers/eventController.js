@@ -8,9 +8,20 @@ const getAllEvents = async (req, res) => {
       include: [
         {
           model: User,
-          as: "participants",
+          as: "creator",
           attributes: ["id", "name", "email"],
-          through: { attributes: ["attended"] },
+        },
+        {
+          model: EventParticipant,
+          as: "participants",
+          attributes: ["id", "eventId", "userId"],
+          include: [
+            {
+              model: User,
+              as: "participant",
+              attributes: ["id", "name", "email"],
+            },
+          ],
         },
       ],
       order: [["startDate", "ASC"]],
@@ -25,14 +36,27 @@ const getAllEvents = async (req, res) => {
 // Get user's events
 const getUserEvents = async (req, res) => {
   try {
+    const userId = req.user.id;
+
     const events = await Event.findAll({
       include: [
         {
           model: User,
-          as: "participants",
-          where: { id: req.user.id },
+          as: "creator",
           attributes: ["id", "name", "email"],
-          through: { attributes: ["attended"] },
+        },
+        {
+          model: EventParticipant,
+          as: "participants",
+          attributes: ["id", "eventId", "userId"],
+          include: [
+            {
+              model: User,
+              as: "participant",
+              attributes: ["id", "name", "email"],
+              where: { id: userId },
+            },
+          ],
         },
       ],
       order: [["startDate", "ASC"]],
@@ -51,9 +75,20 @@ const getEventById = async (req, res) => {
       include: [
         {
           model: User,
-          as: "participants",
+          as: "creator",
           attributes: ["id", "name", "email"],
-          through: { attributes: ["attended"] },
+        },
+        {
+          model: EventParticipant,
+          as: "participants",
+          attributes: ["id", "eventId", "userId"],
+          include: [
+            {
+              model: User,
+              as: "participant",
+              attributes: ["id", "name", "email"],
+            },
+          ],
         },
       ],
     });
@@ -72,13 +107,27 @@ const getEventById = async (req, res) => {
 // Create event
 const createEvent = async (req, res) => {
   try {
+    // Check if user has HR or manager role
+    if (req.user.role !== "hr" && req.user.role !== "manager") {
+      return res.status(403).json({
+        message: "Access denied. Only HR and managers can create events.",
+      });
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { title, description, startDate, endDate, type, participants } =
-      req.body;
+    const {
+      title,
+      description,
+      startDate,
+      endDate,
+      type,
+      location,
+      participants,
+    } = req.body;
 
     // Create event
     const event = await Event.create({
@@ -86,13 +135,20 @@ const createEvent = async (req, res) => {
       description,
       startDate,
       endDate,
+      location,
       type,
       createdBy: req.user.id,
     });
 
     // Add participants if provided
     if (participants && participants.length > 0) {
-      await event.setParticipants(participants);
+      // Create event participants
+      const participantRecords = participants.map((userId) => ({
+        eventId: event.id,
+        userId,
+      }));
+
+      await EventParticipant.bulkCreate(participantRecords);
     }
 
     // Get created event with participants
@@ -100,9 +156,20 @@ const createEvent = async (req, res) => {
       include: [
         {
           model: User,
-          as: "participants",
+          as: "creator",
           attributes: ["id", "name", "email"],
-          through: { attributes: ["attended"] },
+        },
+        {
+          model: EventParticipant,
+          as: "participants",
+          attributes: ["id", "eventId", "userId"],
+          include: [
+            {
+              model: User,
+              as: "participant",
+              attributes: ["id", "name", "email"],
+            },
+          ],
         },
       ],
     });
@@ -117,6 +184,13 @@ const createEvent = async (req, res) => {
 // Update event
 const updateEvent = async (req, res) => {
   try {
+    // Check if user has HR role
+    if (req.user.role !== "hr") {
+      return res.status(403).json({
+        message: "Access denied. Only HR can update events.",
+      });
+    }
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -141,7 +215,18 @@ const updateEvent = async (req, res) => {
 
     // Update participants if provided
     if (participants) {
-      await event.setParticipants(participants);
+      // Remove existing participants
+      await EventParticipant.destroy({
+        where: { eventId: event.id },
+      });
+
+      // Add new participants
+      const participantRecords = participants.map((userId) => ({
+        eventId: event.id,
+        userId,
+      }));
+
+      await EventParticipant.bulkCreate(participantRecords);
     }
 
     // Get updated event with participants
@@ -149,9 +234,20 @@ const updateEvent = async (req, res) => {
       include: [
         {
           model: User,
-          as: "participants",
+          as: "creator",
           attributes: ["id", "name", "email"],
-          through: { attributes: ["attended"] },
+        },
+        {
+          model: EventParticipant,
+          as: "participants",
+          attributes: ["id", "eventId", "userId"],
+          include: [
+            {
+              model: User,
+              as: "participant",
+              attributes: ["id", "name", "email"],
+            },
+          ],
         },
       ],
     });
@@ -166,6 +262,13 @@ const updateEvent = async (req, res) => {
 // Delete event
 const deleteEvent = async (req, res) => {
   try {
+    // Check if user has HR role
+    if (req.user.role !== "hr") {
+      return res.status(403).json({
+        message: "Access denied. Only HR can delete events.",
+      });
+    }
+
     const event = await Event.findByPk(req.params.id);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
@@ -197,8 +300,14 @@ const updateAttendance = async (req, res) => {
       return res.status(404).json({ message: "Participant not found" });
     }
 
-    // Update attendance
-    await participant.update({ attended });
+    // Instead of updating the attended field directly,
+    // We can use the "notes" field to store attendance information
+    const attendanceNote = attended ? "Attended: Yes" : "Attended: No";
+
+    // Update notes with attendance information
+    await participant.update({
+      notes: attendanceNote,
+    });
 
     res.json({ message: "Attendance updated successfully" });
   } catch (error) {

@@ -15,6 +15,30 @@ const getUserNotifications = async (req, res) => {
   }
 };
 
+// Create a new notification
+const createNotification = async (req, res) => {
+  try {
+    const { userId, title, message, type } = req.body;
+
+    if (!userId || !title || !message) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const notification = await Notification.create({
+      userId,
+      title,
+      message,
+      type: type || "system",
+      isRead: false,
+    });
+
+    res.status(201).json(notification);
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // Mark notification as read
 const markAsRead = async (req, res) => {
   try {
@@ -29,7 +53,7 @@ const markAsRead = async (req, res) => {
       return res.status(404).json({ message: "Notification not found" });
     }
 
-    await notification.update({ read: true });
+    await notification.update({ isRead: true });
     res.json(notification);
   } catch (error) {
     console.error("Error marking notification as read:", error);
@@ -41,11 +65,11 @@ const markAsRead = async (req, res) => {
 const markAllAsRead = async (req, res) => {
   try {
     await Notification.update(
-      { read: true },
+      { isRead: true },
       {
         where: {
           userId: req.user.id,
-          read: false,
+          isRead: false,
         },
       }
     );
@@ -101,6 +125,7 @@ const getAllNotifications = async (req, res) => {
 
 module.exports = {
   getUserNotifications,
+  createNotification,
   markAsRead,
   markAllAsRead,
   deleteNotification,

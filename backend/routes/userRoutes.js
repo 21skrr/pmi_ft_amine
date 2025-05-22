@@ -27,17 +27,17 @@ const userValidation = [
     .withMessage("Invalid program type"),
 ];
 
-// Get all users (admin only)
-router.get("/", auth, checkRole("admin"), userController.getAllUsers);
+// Get all users (admin and hr only)
+router.get("/", auth, checkRole("admin", "hr"), userController.getAllUsers);
 
 // Get user by ID
 router.get("/:id", auth, userController.getUserById);
 
-// Create new user (admin only)
+// Create new user (admin and hr only)
 router.post(
   "/",
   auth,
-  checkRole("admin"),
+  checkRole("admin", "hr"),
   userValidation,
   userController.createUser
 );
@@ -46,7 +46,7 @@ router.post(
 router.put("/:id", auth, userValidation, userController.updateUser);
 
 // Delete user (admin only)
-router.delete("/:id", auth, checkRole("admin"), userController.deleteUser);
+router.delete("/:id", auth, checkRole("hr"), userController.deleteUser);
 
 // Get team members (supervisor/manager only)
 router.get(

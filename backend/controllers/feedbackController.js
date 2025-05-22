@@ -22,8 +22,14 @@ const getSentFeedback = async (req, res) => {
 // Get received feedback
 const getReceivedFeedback = async (req, res) => {
   try {
+    // HR sees all feedback, others see only their own
+    const whereClause =
+      req.user.role === "hr"
+        ? {} // all feedback
+        : { receiverId: req.user.id };
+
     const feedback = await Feedback.findAll({
-      where: { receiverId: req.user.id },
+      where: whereClause,
       include: [
         { model: User, as: "sender" },
         { model: User, as: "receiver" },
@@ -39,6 +45,9 @@ const getReceivedFeedback = async (req, res) => {
 // Get department feedback
 const getDepartmentFeedback = async (req, res) => {
   try {
+    if (!req.params.department) {
+      return res.status(400).json({ message: "Department is required" });
+    }
     const feedback = await Feedback.findAll({
       include: [
         {

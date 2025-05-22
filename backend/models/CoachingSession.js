@@ -5,12 +5,12 @@ const CoachingSession = sequelize.define(
   "CoachingSession",
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.CHAR(36),
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     supervisorId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
       references: {
         model: "Users",
@@ -18,7 +18,7 @@ const CoachingSession = sequelize.define(
       },
     },
     employeeId: {
-      type: DataTypes.UUID,
+      type: DataTypes.CHAR(36),
       allowNull: false,
       references: {
         model: "Users",

@@ -52,6 +52,7 @@ router.put(
   updatePasswordValidation,
   authController.updatePassword
 );
+router.post("/logout", auth, authController.logout);
 
 // ✅ Export the router
 module.exports = router;

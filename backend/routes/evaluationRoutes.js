@@ -32,7 +32,7 @@ router.get("/user", auth, evaluationController.getUserEvaluations);
 router.get(
   "/supervisor",
   auth,
-  checkRole("supervisor"),
+  checkRole("supervisor", "hr"),
   evaluationController.getSupervisorEvaluations
 );
 

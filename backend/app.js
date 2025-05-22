@@ -17,6 +17,14 @@ const coachingRoutes = require("./routes/coachingRoutes");
 const documentRoutes = require("./routes/documentRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const surveyRoutes = require("./routes/surveyRoutes");
+const teamRoutes = require("./routes/teamRoutes");
+const programRoutes = require("./routes/programRoutes");
+const checklistRoutes = require("./routes/checklistRoutes");
+const checklistItemRoutes = require("./routes/checklistItemRoutes");
+const checklistAssignmentRoutes = require("./routes/checklistAssignmentRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
+const supervisorRoutes = require("./routes/supervisorRoutes");
 
 const app = express();
 // Middleware
@@ -45,6 +53,15 @@ app.use("/api/coaching", coachingRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/surveys", surveyRoutes);
+app.use("/api/team", teamRoutes);
+app.use("/api/programs", programRoutes);
+app.use("/api/checklists", checklistRoutes);
+app.use("/api/checklist-items", checklistItemRoutes);
+app.use("/api/checklist-assignments", checklistAssignmentRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/settings", settingsRoutes);
+app.use("/api/supervisor", supervisorRoutes);
+app.use("/api/onboarding/tasks", taskRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
